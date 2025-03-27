@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "167483366107",
+    "project_id": "poro2-839fe",
+    "storage_bucket": "poro2-839fe.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:167483366107:android:96d34ad5287fe39358cafe",
+        "android_client_info": {
+          "package_name": "com.example.poro_2"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "167483366107-ijspub2trjrlr40msr8beooe5sdp7klg.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCVPeJh5lgWjmFScVMFBSqYHuXspWgInsM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "167483366107-ijspub2trjrlr40msr8beooe5sdp7klg.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "167483366107-bbh6sseuv6qh1fo1uk3kobf9sp9dd1ea.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.poro2"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
