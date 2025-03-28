@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 class CreateTaskScreen extends StatefulWidget {
@@ -133,7 +134,13 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Tạo Task')),
+      appBar: AppBar(
+        title: Text('Tạo Task'),
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back),
+          onPressed: () => context.go('/admin'), // Điều hướng về trang admin
+        ),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(

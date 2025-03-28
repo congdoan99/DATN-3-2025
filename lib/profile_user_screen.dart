@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 class ProfileUserScreen extends StatefulWidget {
   final Map<String, dynamic>? userData;
@@ -51,7 +52,14 @@ class _ProfileUserScreenState extends State<ProfileUserScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Thông tin cá nhân")),
+      appBar: AppBar(
+        title: Text("Thông tin cá nhân"),
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back),
+          onPressed:
+              () => context.go('/user_screen'), // Điều hướng về trang admin
+        ),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(

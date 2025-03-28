@@ -3,7 +3,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:poro_2/ProjectDetailScreen.dart';
-import 'package:poro_2/profile_user_screen.dart';
 
 class UserScreen extends StatefulWidget {
   @override
@@ -67,19 +66,7 @@ class _UserScreenState extends State<UserScreen> {
     // Nếu người dùng đồng ý đăng xuất, thực hiện đăng xuất
     if (confirmLogout == true) {
       await _auth.signOut();
-
-      // Hiển thị thông báo đăng xuất thành công
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Đăng xuất thành công!"),
-          duration: Duration(seconds: 2),
-        ),
-      );
-
-      // Điều hướng về màn hình auth_gate
-      if (mounted) {
-        context.go('/auth_gate');
-      }
+      if (mounted) context.go('/auth_gate');
     }
   }
 
@@ -180,13 +167,7 @@ class _UserScreenState extends State<UserScreen> {
               SizedBox(height: 16),
               GestureDetector(
                 onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder:
-                          (context) => ProfileUserScreen(userData: _userData),
-                    ),
-                  );
+                  context.go('/profile_user', extra: _userData);
                 },
                 child: Row(
                   children: [
