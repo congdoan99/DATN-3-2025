@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:multi_select_flutter/dialog/multi_select_dialog_field.dart';
 import 'package:multi_select_flutter/util/multi_select_item.dart';
-import 'package:poro_2/ProjectDetailScreen.dart';
 
 class AdminProjectScreen extends StatefulWidget {
   @override
@@ -206,15 +205,8 @@ class _AdminProjectScreenState extends State<AdminProjectScreen> {
                           ),
                           trailing: Icon(Icons.arrow_forward_ios, size: 18),
                           onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder:
-                                    (context) => ProjectDetailScreen(
-                                      projectId: doc.id,
-                                      projectName: doc['name'],
-                                    ),
-                              ),
+                            context.go(
+                              '/project-detail/${doc.id}/${Uri.encodeComponent(doc['name'] ?? '')}', // Truyền id và tên project vào URL
                             );
                           },
                         ),

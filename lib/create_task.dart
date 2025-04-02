@@ -91,6 +91,8 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
       return;
     }
 
+    String taskId = FirebaseFirestore.instance.collection('tasks').doc().id;
+
     try {
       String? processId = await fetchHighestPriorityProcessIdBasedOnProject(
         selectedProjectId!,
@@ -103,10 +105,11 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
         return;
       }
 
-      await FirebaseFirestore.instance.collection('tasks').add({
+      await FirebaseFirestore.instance.collection('tasks').doc(taskId).set({
+        'taskId': taskId,
         'name': taskNameController.text.trim(),
         'projectId': selectedProjectId,
-        'processId': processId, // Gán đúng processId của "To Do"
+        'processId': processId,
         'assigneeId': selectedAssigneeId,
         'dueDate': Timestamp.fromDate(dueDate!),
         'createdAt': FieldValue.serverTimestamp(),

@@ -2,7 +2,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:poro_2/ProjectDetailScreen.dart';
 
 class UserScreen extends StatefulWidget {
   @override
@@ -256,17 +255,36 @@ class _UserScreenState extends State<UserScreen> {
                                 projects[index].data() as Map<String, dynamic>;
                             String projectId = projects[index].id;
 
+                            // Kiểm tra project có được chọn không
+                            bool isSelected = _selectedProjectId == projectId;
+
                             return Card(
+                              color:
+                                  isSelected
+                                      ? Colors.blue[100]
+                                      : Colors.white, // Đổi màu nền
                               child: ListTile(
                                 title: Text(
                                   projectData['name'] ?? 'Unnamed Project',
+                                  style: TextStyle(
+                                    fontWeight:
+                                        isSelected
+                                            ? FontWeight.bold
+                                            : FontWeight.normal,
+                                  ),
                                 ),
                                 subtitle: Text(
                                   "Người thực hiện: ${projectData['assignee'] ?? 'Chưa có người thực hiện'}",
                                 ),
                                 leading: Icon(Icons.folder, color: Colors.blue),
                                 trailing: IconButton(
-                                  icon: Icon(Icons.list, color: Colors.green),
+                                  icon: Icon(
+                                    Icons.list,
+                                    color:
+                                        isSelected
+                                            ? Colors.blue
+                                            : Colors.green, // Đổi màu icon
+                                  ),
                                   onPressed: () {
                                     setState(() {
                                       _selectedProjectId = projectId;
@@ -274,17 +292,11 @@ class _UserScreenState extends State<UserScreen> {
                                   },
                                 ),
                                 onTap: () {
-                                  // Chuyển sang màn ProjectDetailScreen khi nhấn vào project
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder:
-                                          (context) => ProjectDetailScreen(
-                                            projectId: projectId,
-                                            projectName:
-                                                projectData['name'] ?? '',
-                                          ),
-                                    ),
+                                  final projectId = projects[index].id;
+                                  final projectName =
+                                      projectData['name'] ?? 'No Name';
+                                  context.go(
+                                    '/project-detail/$projectId/${Uri.encodeComponent(projectName)}',
                                   );
                                 },
                               ),
@@ -348,7 +360,18 @@ class _UserScreenState extends State<UserScreen> {
                                   ),
                                 ),
                                 onTap: () {
-                                  // Mở màn hình chi tiết task (nếu cần)
+                                  // Kiểm tra nếu taskData['taskId'] không phải null
+                                  String? taskId = taskData['taskId'];
+                                  if (taskId != null) {
+                                    context.push('/task-detail/$taskId');
+                                  } else {
+                                    // Xử lý khi taskId là null, ví dụ hiển thị thông báo lỗi
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('Task không hợp lệ!'),
+                                      ),
+                                    );
+                                  }
                                 },
                               ),
                             );

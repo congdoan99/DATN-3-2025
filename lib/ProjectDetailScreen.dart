@@ -1,16 +1,65 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 class ProjectDetailScreen extends StatelessWidget {
   final String projectId;
   final String projectName;
 
-  ProjectDetailScreen({required this.projectId, required this.projectName});
+  const ProjectDetailScreen({
+    super.key,
+    required this.projectId,
+    required this.projectName,
+  });
+
+  Future<String> _getUserRole() async {
+    try {
+      String userId = FirebaseAuth.instance.currentUser!.uid;
+      DocumentSnapshot userDoc =
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(userId)
+              .get();
+      return userDoc['role'];
+    } catch (e) {
+      print("Lỗi khi lấy quyền người dùng: $e");
+      return "unknown";
+    }
+  }
+
+  Future<void> _addLog(String taskId, String action) async {
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    Map<String, dynamic> logEntry = {
+      'action': action,
+      'user': user.email ?? 'Unknown',
+      'timestamp': Timestamp.now(),
+    };
+
+    await FirebaseFirestore.instance.collection('tasks').doc(taskId).update({
+      'logs': FieldValue.arrayUnion([logEntry]),
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Quản lý Công Việc - $projectName')),
+      appBar: AppBar(
+        title: Text('Quản lý Công Việc - $projectName'),
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back),
+          onPressed: () async {
+            String role = await _getUserRole();
+            if (role == 'admin') {
+              context.go('/create_project');
+            } else {
+              context.go('/user_screen');
+            }
+          },
+        ),
+      ),
       body: StreamBuilder<QuerySnapshot>(
         stream:
             FirebaseFirestore.instance
@@ -76,6 +125,7 @@ class ProjectDetailScreen extends StatelessWidget {
                       projectId: projectId,
                       processId: process['id'],
                       processName: process['name'],
+                      addLog: (taskId, action) => _addLog(taskId, action),
                     );
                   }).toList(),
             ),
@@ -90,11 +140,14 @@ class ProcessColumn extends StatefulWidget {
   final String projectId;
   final String processId;
   final String processName;
+  final Function(String taskId, String action) addLog;
 
-  ProcessColumn({
+  const ProcessColumn({
+    super.key,
     required this.projectId,
     required this.processId,
     required this.processName,
+    required this.addLog,
   });
 
   @override
@@ -125,6 +178,9 @@ class _ProcessColumnState extends State<ProcessColumn> {
         'processId': newProcessId,
         'status': toProcessName,
       });
+
+      // Ghi lại log thay đổi
+      await widget.addLog(taskId, "Moved to $toProcessName");
     } catch (e) {
       print("Lỗi khi di chuyển task: $e");
     }
@@ -132,7 +188,7 @@ class _ProcessColumnState extends State<ProcessColumn> {
 
   void _addTask(BuildContext context) async {
     TextEditingController taskController = TextEditingController();
-    String? selectedUser; // Đảm bảo selectedUser là nullable
+    String? selectedUser;
 
     List<Map<String, String>> users = [];
 
@@ -178,8 +234,7 @@ class _ProcessColumnState extends State<ProcessColumn> {
                             }).toList(),
                         onChanged: (value) {
                           setDialogState(() {
-                            selectedUser =
-                                value; // Cập nhật giá trị selectedUser
+                            selectedUser = value;
                           });
                         },
                       ),
@@ -216,7 +271,6 @@ class _ProcessColumnState extends State<ProcessColumn> {
                         print("Lỗi khi thêm task: $e");
                       }
                     } else {
-                      // Nếu không chọn người thực hiện hoặc tên task rỗng
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text("Vui lòng nhập đầy đủ thông tin"),
@@ -234,6 +288,35 @@ class _ProcessColumnState extends State<ProcessColumn> {
     );
   }
 
+  Color _getColumnColor(String processName) {
+    switch (processName) {
+      case 'To Do':
+        return Colors.orange[200]!;
+      case 'Doing':
+        return Colors.blue[200]!;
+      case 'Done':
+        return Colors.green[200]!;
+      case 'Complete':
+        return Colors.purple[200]!;
+      default:
+        return Colors.grey[200]!;
+    }
+  }
+
+  Future<int> _getTaskCount(String processId) async {
+    try {
+      QuerySnapshot tasksSnapshot =
+          await FirebaseFirestore.instance
+              .collection('tasks')
+              .where('processId', isEqualTo: processId)
+              .get();
+      return tasksSnapshot.docs.length;
+    } catch (e) {
+      print("Lỗi khi lấy số lượng task: $e");
+      return 0;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return DragTarget<Map<String, String>>(
@@ -249,7 +332,7 @@ class _ProcessColumnState extends State<ProcessColumn> {
           margin: EdgeInsets.all(10),
           padding: EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: Colors.grey[200],
+            color: _getColumnColor(widget.processName),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Column(
@@ -260,6 +343,18 @@ class _ProcessColumnState extends State<ProcessColumn> {
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 10),
+              FutureBuilder<int>(
+                future: _getTaskCount(widget.processId),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return Text("Đang tải...");
+                  }
+                  if (snapshot.hasError) {
+                    return Text("Lỗi khi tải số lượng task");
+                  }
+                  return Text("Số lượng task: ${snapshot.data}");
+                },
+              ),
               Expanded(
                 child: StreamBuilder<QuerySnapshot>(
                   stream:
@@ -308,10 +403,11 @@ class _ProcessColumnState extends State<ProcessColumn> {
                   },
                 ),
               ),
-              ElevatedButton(
-                onPressed: () => _addTask(context),
-                child: Text("+ Thêm Task"),
-              ),
+              if (widget.processName == "To Do")
+                ElevatedButton(
+                  onPressed: () => _addTask(context),
+                  child: Text("+ Thêm Task"),
+                ),
             ],
           ),
         );

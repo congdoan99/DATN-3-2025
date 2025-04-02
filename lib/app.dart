@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:poro_2/AdminProjectScreen.dart';
+import 'package:poro_2/ProjectDetailScreen.dart';
+import 'package:poro_2/TaskDetailScreen.dart';
 import 'package:poro_2/admin/admin_screen.dart';
 import 'package:poro_2/create_task.dart';
 import 'package:poro_2/profile_user_screen.dart';
@@ -38,7 +40,33 @@ class MyApp extends StatelessWidget {
           return ProfileUserScreen(userData: userData);
         },
       ),
+      GoRoute(
+        path: '/project-detail/:id/:name',
+        builder: (context, state) {
+          final projectId = state.pathParameters['id'];
+          final projectName = state.pathParameters['name'];
+
+          if (projectId == null || projectName == null) {
+            return Scaffold(
+              body: Center(child: Text("Lỗi: Không tìm thấy project")),
+            );
+          }
+          return ProjectDetailScreen(
+            projectId: projectId,
+            projectName: projectName,
+          );
+        },
+      ),
+
+      GoRoute(
+        path: '/task-detail/:taskId',
+        builder: (context, state) {
+          final taskId = state.pathParameters['taskId']!;
+          return TaskDetailScreen(taskId: taskId);
+        },
+      ),
     ],
+    debugLogDiagnostics: true,
   );
 
   @override
