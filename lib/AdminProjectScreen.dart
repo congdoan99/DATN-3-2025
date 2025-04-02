@@ -5,6 +5,8 @@ import 'package:multi_select_flutter/dialog/multi_select_dialog_field.dart';
 import 'package:multi_select_flutter/util/multi_select_item.dart';
 
 class AdminProjectScreen extends StatefulWidget {
+  const AdminProjectScreen({super.key});
+
   @override
   _AdminProjectScreenState createState() => _AdminProjectScreenState();
 }

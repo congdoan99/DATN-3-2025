@@ -174,13 +174,19 @@ class _ProcessColumnState extends State<ProcessColumn> {
 
       String newProcessId = processQuery.docs.first.id;
 
+      // Cập nhật processId của task
       await FirebaseFirestore.instance.collection('tasks').doc(taskId).update({
         'processId': newProcessId,
         'status': toProcessName,
       });
 
-      // Ghi lại log thay đổi
+      // Ghi lại log
       await widget.addLog(taskId, "Moved to $toProcessName");
+
+      // Cập nhật lại số lượng task của cả bảng cũ và bảng mới
+      if (mounted) {
+        setState(() {});
+      }
     } catch (e) {
       print("Lỗi khi di chuyển task: $e");
     }
@@ -250,22 +256,30 @@ class _ProcessColumnState extends State<ProcessColumn> {
                     if (taskController.text.trim().isNotEmpty &&
                         selectedUser != null) {
                       try {
+                        // Tạo taskId mới
                         String taskId =
                             FirebaseFirestore.instance
                                 .collection('tasks')
                                 .doc()
                                 .id;
+
+                        // Lưu task vào Firestore
                         await FirebaseFirestore.instance
                             .collection('tasks')
                             .doc(taskId)
                             .set({
-                              'id': taskId,
+                              'taskId': taskId,
                               'name': taskController.text.trim(),
                               'projectId': widget.projectId,
                               'processId': widget.processId,
                               'assigneeId': selectedUser,
                               'createdAt': Timestamp.now(),
+                              'status': 'To Do', // hoặc trạng thái khác nếu cần
                             });
+
+                        // Cập nhật lại danh sách task hiển thị
+                        setState(() {});
+
                         Navigator.pop(context);
                       } catch (e) {
                         print("Lỗi khi thêm task: $e");
@@ -343,8 +357,12 @@ class _ProcessColumnState extends State<ProcessColumn> {
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 10),
-              FutureBuilder<int>(
-                future: _getTaskCount(widget.processId),
+              StreamBuilder<QuerySnapshot>(
+                stream:
+                    FirebaseFirestore.instance
+                        .collection('tasks')
+                        .where('processId', isEqualTo: widget.processId)
+                        .snapshots(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return Text("Đang tải...");
@@ -352,7 +370,9 @@ class _ProcessColumnState extends State<ProcessColumn> {
                   if (snapshot.hasError) {
                     return Text("Lỗi khi tải số lượng task");
                   }
-                  return Text("Số lượng task: ${snapshot.data}");
+                  return Text(
+                    "Số lượng task: ${snapshot.data?.docs.length ?? 0}",
+                  );
                 },
               ),
               Expanded(

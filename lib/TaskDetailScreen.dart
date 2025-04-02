@@ -81,7 +81,26 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
     double width = MediaQuery.of(context).size.width;
 
     return Scaffold(
-      appBar: AppBar(title: Text('Task Detail')),
+      appBar: AppBar(
+        title: Text('Task Detail'),
+        actions: [
+          // Hiển thị nút chỉnh sửa/ lưu trên AppBar
+          IconButton(
+            icon: Icon(_isEditing ? Icons.save : Icons.edit),
+            onPressed: () {
+              setState(() {
+                if (_isEditing) {
+                  // Khi nhấn lưu, thực hiện cập nhật task
+                  _updateTask();
+                } else {
+                  // Chuyển sang chế độ chỉnh sửa
+                  _isEditing = true;
+                }
+              });
+            },
+          ),
+        ],
+      ),
       body:
           _taskData == null
               ? Center(child: CircularProgressIndicator())
@@ -135,39 +154,6 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
                         ),
                       ),
                       SizedBox(height: 20),
-
-                      // Button to toggle between edit and view
-                      _isEditing
-                          ? Center(
-                            child: ElevatedButton.icon(
-                              onPressed: _updateTask,
-                              icon: Icon(Icons.save),
-                              label: Text('Lưu'),
-                              style: ElevatedButton.styleFrom(
-                                minimumSize: Size(width * 0.8, 50),
-                                backgroundColor: Colors.green,
-                                textStyle: TextStyle(fontSize: 18),
-                              ),
-                            ),
-                          )
-                          : Center(
-                            child: ElevatedButton.icon(
-                              onPressed: () {
-                                setState(() {
-                                  _isEditing = true;
-                                });
-                              },
-                              icon: Icon(Icons.edit),
-                              label: Text('Chỉnh sửa'),
-                              style: ElevatedButton.styleFrom(
-                                minimumSize: Size(width * 0.8, 50),
-                                backgroundColor: Colors.orange,
-                                textStyle: TextStyle(fontSize: 18),
-                              ),
-                            ),
-                          ),
-                      SizedBox(height: 20),
-
                       // Logs Section
                       Text(
                         'Nhật ký chỉnh sửa:',
@@ -177,7 +163,6 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
                         ),
                       ),
                       SizedBox(height: 10),
-
                       // Display Logs in Cards
                       _logs.isEmpty
                           ? Padding(
