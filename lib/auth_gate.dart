@@ -32,7 +32,6 @@ class _AuthGateState extends State<AuthGate> {
 
             final role = roleSnapshot.data;
 
-            // Sử dụng `context.go()` để thay đổi URL
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (role == 'admin') {
                 context.go('/admin');
@@ -68,15 +67,49 @@ class _AuthGateState extends State<AuthGate> {
       providers: [uiAuth.EmailAuthProvider()],
       actions: [],
       showAuthActionSwitch: false,
+      headerMaxExtent: 200,
+      headerBuilder: (context, constraints, _) {
+        return Padding(
+          padding: const EdgeInsets.only(top: 40, bottom: 20),
+          child: Image.asset(
+            'assets/logo_cd.png',
+            height: 100,
+            fit: BoxFit.contain,
+            errorBuilder: (context, error, stackTrace) {
+              print("Error loading image: $error");
+              return const Text('Không load được ảnh');
+            },
+          ),
+        );
+      },
       subtitleBuilder:
           (context, action) => const Padding(
             padding: EdgeInsets.symmetric(vertical: 8.0),
             child: Text(
-              'Chào mừng! Vui lòng đăng nhập hoặc đăng ký bằng email hoặc số điện thoại.',
+              'Quản lý công việc hiệu quả',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 16),
             ),
           ),
+      footerBuilder: (context, action) {
+        return Column(
+          children: [
+            const SizedBox(height: 16),
+            TextButton(
+              onPressed: () {
+                context.push('/sign_up');
+              },
+              child: const Text(
+                'Bạn chưa có tài khoản? Đăng ký',
+                style: TextStyle(
+                  color: Colors.blue, // Đăng ký màu xanh dương
+                  fontSize: 16,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

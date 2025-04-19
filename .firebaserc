@@ -1,6 +1,7 @@
 {
   "projects": {
-    "poro2": "demo2025-26aae"
+    "poro2": "demo2025-26aae",
+    "default": "poro2-839fe"
   },
   "targets": {},
   "etags": {}

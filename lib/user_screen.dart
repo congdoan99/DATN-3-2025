@@ -145,12 +145,61 @@ class _UserScreenState extends State<UserScreen> {
     }
   }
 
+  Stream<QuerySnapshot> getNotificationStream() {
+    return _firestore
+        .collection('notifications')
+        .where('userId', isEqualTo: _user?.uid)
+        .where('isRead', isEqualTo: false)
+        .snapshots();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text('User'),
-        actions: [IconButton(icon: Icon(Icons.logout), onPressed: _logout)],
+        actions: [
+          StreamBuilder<QuerySnapshot>(
+            stream: getNotificationStream(),
+            builder: (context, snapshot) {
+              int count = snapshot.data?.docs.length ?? 0;
+              return Stack(
+                children: [
+                  IconButton(
+                    icon: Icon(Icons.notifications),
+                    onPressed: () {
+                      context.go(
+                        '/notification',
+                      ); // Điều hướng tới màn NotificationScreen
+                    },
+                  ),
+                  if (count > 0)
+                    Positioned(
+                      right: 11,
+                      top: 11,
+                      child: Container(
+                        padding: EdgeInsets.all(2),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        constraints: BoxConstraints(
+                          minWidth: 16,
+                          minHeight: 16,
+                        ),
+                        child: Text(
+                          '$count',
+                          style: TextStyle(color: Colors.white, fontSize: 10),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
+          IconButton(icon: Icon(Icons.logout), onPressed: _logout),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),

@@ -317,19 +317,19 @@ class _ProcessColumnState extends State<ProcessColumn> {
     }
   }
 
-  Future<int> _getTaskCount(String processId) async {
-    try {
-      QuerySnapshot tasksSnapshot =
-          await FirebaseFirestore.instance
-              .collection('tasks')
-              .where('processId', isEqualTo: processId)
-              .get();
-      return tasksSnapshot.docs.length;
-    } catch (e) {
-      print("Lỗi khi lấy số lượng task: $e");
-      return 0;
-    }
-  }
+  // Future<int> _getTaskCount(String processId) async {
+  //   try {
+  //     QuerySnapshot tasksSnapshot =
+  //         await FirebaseFirestore.instance
+  //             .collection('tasks')
+  //             .where('processId', isEqualTo: processId)
+  //             .get();
+  //     return tasksSnapshot.docs.length;
+  //   } catch (e) {
+  //     print("Lỗi khi lấy số lượng task: $e");
+  //     return 0;
+  //   }
+  // }
 
   @override
   Widget build(BuildContext context) {

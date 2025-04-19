@@ -55,6 +55,15 @@ class _AdminProjectScreenState extends State<AdminProjectScreen> {
             'processes': _selectedProcesses,
           });
 
+      await FirebaseFirestore.instance.collection('notifications').add({
+        'title': 'Bạn đã được giao một dự án mới',
+        'description':
+            'Dự án "$projectName" đã được giao cho bạn với hạn chót $deadline',
+        'timestamp': Timestamp.now(),
+        'assignee': _selectedAssignee, // đổi từ 'userId' thành 'assignee'
+        'isRead': false,
+      });
+
       for (var process in _selectedProcesses) {
         await projectRef.collection('processes').add({
           'name': process,
