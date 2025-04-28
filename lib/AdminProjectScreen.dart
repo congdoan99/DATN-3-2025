@@ -16,7 +16,8 @@ class _AdminProjectScreenState extends State<AdminProjectScreen> {
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _deadlineController = TextEditingController();
 
-  String? _selectedAssignee;
+  String? _selectedAssigneeUid;
+  String? _selectedAssigneeName;
   DateTime? _selectedDeadline;
   List<String> _selectedProcesses = [];
 
@@ -29,7 +30,7 @@ class _AdminProjectScreenState extends State<AdminProjectScreen> {
 
   Future<void> _createProject() async {
     if (_projectNameController.text.trim().isEmpty ||
-        _selectedAssignee == null ||
+        _selectedAssigneeUid == null ||
         _selectedDeadline == null ||
         _selectedProcesses.isEmpty) {
       ScaffoldMessenger.of(
@@ -41,7 +42,8 @@ class _AdminProjectScreenState extends State<AdminProjectScreen> {
     try {
       String projectName = _projectNameController.text.trim();
       String description = _descriptionController.text.trim();
-      String assignee = _selectedAssignee!;
+      String assigneeUid = _selectedAssigneeUid!;
+      String assigneeName = _selectedAssigneeName ?? '';
       DateTime deadline = _selectedDeadline!;
 
       var projectRef = await FirebaseFirestore.instance
@@ -50,7 +52,8 @@ class _AdminProjectScreenState extends State<AdminProjectScreen> {
             'name': projectName,
             'description': description,
             'createdAt': Timestamp.now(),
-            'assignee': assignee,
+            'assignee': assigneeUid,
+            'assigneeName': assigneeName,
             'deadline': Timestamp.fromDate(deadline),
             'processes': _selectedProcesses,
           });
@@ -58,9 +61,9 @@ class _AdminProjectScreenState extends State<AdminProjectScreen> {
       await FirebaseFirestore.instance.collection('notifications').add({
         'title': 'Bạn đã được giao một dự án mới',
         'description':
-            'Dự án "$projectName" đã được giao cho bạn với hạn chót $deadline',
+            'Dự án "$projectName" đã được giao cho bạn với hạn chót ${deadline.toLocal().toString().split(' ')[0]}',
         'timestamp': Timestamp.now(),
-        'assignee': _selectedAssignee, // đổi từ 'userId' thành 'assignee'
+        'assignee': assigneeUid,
         'isRead': false,
       });
 
@@ -76,8 +79,10 @@ class _AdminProjectScreenState extends State<AdminProjectScreen> {
       ).showSnackBar(SnackBar(content: Text('Tạo project thành công!')));
       _projectNameController.clear();
       _descriptionController.clear();
+      _deadlineController.clear();
       setState(() {
-        _selectedAssignee = null;
+        _selectedAssigneeUid = null;
+        _selectedAssigneeName = null;
         _selectedDeadline = null;
         _selectedProcesses = [];
       });
@@ -88,13 +93,15 @@ class _AdminProjectScreenState extends State<AdminProjectScreen> {
     }
   }
 
-  Future<List<String>> _getUsers() async {
+  Future<List<Map<String, String>>> _getUsers() async {
     QuerySnapshot snapshot =
         await FirebaseFirestore.instance.collection('users').get();
     return snapshot.docs.map((doc) {
-      String fullName = doc['fullName'] ?? 'No Name';
-      String email = doc['email'] ?? '';
-      return '$fullName ($email)';
+      return {
+        'uid': doc.id,
+        'fullName': (doc['fullName'] ?? 'No Name').toString(),
+        'email': (doc['email'] ?? '').toString(),
+      };
     }).toList();
   }
 
@@ -120,7 +127,7 @@ class _AdminProjectScreenState extends State<AdminProjectScreen> {
         title: Text('Quản lý Project'),
         leading: IconButton(
           icon: Icon(Icons.arrow_back),
-          onPressed: () => context.go('/admin'), // Điều hướng về trang admin
+          onPressed: () => context.go('/admin'),
         ),
       ),
       body: Padding(
@@ -135,24 +142,33 @@ class _AdminProjectScreenState extends State<AdminProjectScreen> {
               controller: _descriptionController,
               decoration: InputDecoration(labelText: 'Mô tả Project'),
             ),
-            FutureBuilder<List<String>>(
+            FutureBuilder<List<Map<String, String>>>(
               future: _getUsers(),
               builder: (context, snapshot) {
                 if (!snapshot.hasData) return CircularProgressIndicator();
                 return DropdownButtonFormField<String>(
-                  value: _selectedAssignee,
+                  value: _selectedAssigneeUid,
                   decoration: InputDecoration(
                     labelText: "Người thực hiện",
                     border: OutlineInputBorder(),
                   ),
-                  onChanged:
-                      (String? newValue) =>
-                          setState(() => _selectedAssignee = newValue),
+                  onChanged: (String? newValue) {
+                    final selectedUser = snapshot.data!.firstWhere(
+                      (user) => user['uid'] == newValue,
+                    );
+                    setState(() {
+                      _selectedAssigneeUid = newValue;
+                      _selectedAssigneeName = selectedUser['fullName'];
+                    });
+                  },
                   items:
-                      snapshot.data!.map((String value) {
+                      snapshot.data!.map((user) {
                         return DropdownMenuItem<String>(
-                          value: value,
-                          child: Text(value, overflow: TextOverflow.ellipsis),
+                          value: user['uid'],
+                          child: Text(
+                            "${user['fullName']} (${user['email']})",
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         );
                       }).toList(),
                 );
@@ -211,13 +227,13 @@ class _AdminProjectScreenState extends State<AdminProjectScreen> {
                             style: TextStyle(fontWeight: FontWeight.bold),
                           ),
                           subtitle: Text(
-                            'Người thực hiện: ${doc['assignee'] ?? 'Không có'}\n'
+                            'Người thực hiện: ${doc['assigneeName'] ?? 'Không có'}\n'
                             'Hạn chót: ${doc['deadline']?.toDate()?.toString().split(' ')[0] ?? 'Không có'}',
                           ),
                           trailing: Icon(Icons.arrow_forward_ios, size: 18),
                           onTap: () {
                             context.go(
-                              '/project-detail/${doc.id}/${Uri.encodeComponent(doc['name'] ?? '')}', // Truyền id và tên project vào URL
+                              '/project-detail/${doc.id}/${Uri.encodeComponent(doc['name'] ?? '')}',
                             );
                           },
                         ),

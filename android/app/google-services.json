@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "167483366107-d4hnpar4la58df0198sq48jkl4vrmd22.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.poro_2",
+            "certificate_hash": "fcd5026dbee67d57f49821d0480ebb80789a008d"
+          }
+        },
+        {
           "client_id": "167483366107-ijspub2trjrlr40msr8beooe5sdp7klg.apps.googleusercontent.com",
           "client_type": 3
         }

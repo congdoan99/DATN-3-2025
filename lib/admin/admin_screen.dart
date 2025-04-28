@@ -83,9 +83,46 @@ class _AdminScreenState extends State<AdminScreen> {
   }
 
   Future<void> toggleUserStatus(String userId) async {
-    await _firestore.collection('users').doc(userId).update({
-      'isVisible': false,
-    });
+    // Hiển thị hộp thoại xác nhận
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Xác nhận xóa'),
+          content: Text('Bạn có chắc chắn muốn xóa người dùng này không?'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context); // Đóng hộp thoại khi nhấn Hủy
+              },
+              child: Text('Hủy'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                try {
+                  // Tiến hành xóa người dùng
+                  await _firestore.collection('users').doc(userId).update({
+                    'isVisible': false,
+                  });
+
+                  // Đóng hộp thoại
+                  Navigator.pop(context);
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Người dùng đã bị xóa')),
+                  );
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Lỗi khi xóa người dùng: $e')),
+                  );
+                }
+              },
+              child: Text('Xóa'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   void _editUser(DocumentSnapshot userDoc) {
@@ -266,7 +303,7 @@ class _AdminScreenState extends State<AdminScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Admin Panel'),
+        title: Text('Quản lý hệ thống'),
         actions: [
           IconButton(
             icon: Icon(Icons.add_circle_outline),

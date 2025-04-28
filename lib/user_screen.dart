@@ -157,7 +157,7 @@ class _UserScreenState extends State<UserScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('User'),
+        title: Text('Cá nhân & Công việc'),
         actions: [
           StreamBuilder<QuerySnapshot>(
             stream: getNotificationStream(),
@@ -209,7 +209,7 @@ class _UserScreenState extends State<UserScreen> {
             children: [
               // Account Section
               Text(
-                "My Account",
+                "Tài Khoản",
                 style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 16),

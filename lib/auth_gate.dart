@@ -15,13 +15,15 @@ class _AuthGateState extends State<AuthGate> {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<auth.User?>(
+      // Theo dõi sự thay đổi trạng thái xác thực
       stream: auth.FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
-          return _buildSignInScreen(); // Hiển thị màn hình đăng nhập
+          return _buildSignInScreen(); // Hiển thị màn hình đăng nhập nếu chưa đăng nhập
         }
 
         return FutureBuilder<String>(
+          // Lấy vai trò của người dùng từ Firestore
           future: _getUserRole(snapshot.data!),
           builder: (context, roleSnapshot) {
             if (roleSnapshot.connectionState == ConnectionState.waiting) {
@@ -32,21 +34,20 @@ class _AuthGateState extends State<AuthGate> {
 
             final role = roleSnapshot.data;
 
+            // Sau khi có vai trò, điều hướng tới màn hình tương ứng
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (role == 'admin') {
-                context.go('/admin');
-              } else if (role == 'manager') {
-                context.go('/user_screen');
-              } else if (role == 'employee') {
-                context.go('/user_screen');
+                context.go('/admin'); // Điều hướng đến Admin screen
+              } else if (role == 'manager' || role == 'employee') {
+                context.go('/user_screen'); // Điều hướng đến User screen
               } else {
                 auth.FirebaseAuth.instance
-                    .signOut(); // Đăng xuất nếu role không hợp lệ
-                context.go('/auth_gate'); // Điều hướng về màn hình đăng nhập
+                    .signOut(); // Đăng xuất nếu không có vai trò hợp lệ
+                context.go('/auth_gate'); // Quay lại màn hình đăng nhập
               }
             });
 
-            return const Scaffold();
+            return const Scaffold(); // Không cần UI gì nếu chỉ muốn điều hướng
           },
         );
       },
@@ -59,7 +60,9 @@ class _AuthGateState extends State<AuthGate> {
             .collection('users')
             .doc(user.uid)
             .get();
-    return userDoc.exists ? (userDoc['role'] ?? 'user') : 'user';
+    return userDoc.exists
+        ? (userDoc['role'] ?? 'user')
+        : 'user'; // Trả về vai trò của người dùng
   }
 
   Widget _buildSignInScreen() {
@@ -97,7 +100,7 @@ class _AuthGateState extends State<AuthGate> {
             const SizedBox(height: 16),
             TextButton(
               onPressed: () {
-                context.push('/sign_up');
+                context.push('/phone_sign_in');
               },
               child: const Text(
                 'Bạn chưa có tài khoản? Đăng ký',

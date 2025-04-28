@@ -19,15 +19,12 @@ class _NotificationScreenState extends State<NotificationScreen> {
     _user = _auth.currentUser;
   }
 
-  // Stream để lấy thông báo chưa đọc
+  // Stream để lấy tất cả thông báo (bỏ điều kiện isRead)
   Stream<QuerySnapshot> getNotificationsStream() {
     return _firestore
         .collection('notifications')
-        .where(
-          'assignee',
-          isEqualTo: _user?.uid,
-        ) // đổi từ 'userId' thành 'assignee'
-        .where('isRead', isEqualTo: false)
+        .where('assignee', isEqualTo: _user?.uid)
+        .orderBy('timestamp', descending: true) // Sắp xếp mới nhất lên đầu
         .snapshots();
   }
 
@@ -80,7 +77,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
                 color:
                     notificationData['isRead']
                         ? Colors.white
-                        : Colors.blue[100], // Đổi màu nền nếu thông báo đã đọc
+                        : Colors
+                            .blue[100], // Chưa đọc thì nền xanh, đã đọc thì nền trắng
                 child: ListTile(
                   title: Text(title),
                   subtitle: Column(
@@ -95,12 +93,12 @@ class _NotificationScreenState extends State<NotificationScreen> {
                     ],
                   ),
                   onTap: () {
-                    _markAsRead(
-                      notificationId,
-                    ); // Đánh dấu thông báo đã đọc khi nhấn vào
-                    ScaffoldMessenger.of(
-                      context,
-                    ).showSnackBar(SnackBar(content: Text('Đã đọc thông báo')));
+                    if (!notificationData['isRead']) {
+                      _markAsRead(notificationId); // Chỉ đánh dấu nếu chưa đọc
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Đã đọc thông báo')),
+                      );
+                    }
                   },
                 ),
               );

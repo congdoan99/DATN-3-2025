@@ -6,7 +6,7 @@ import 'package:intl/intl.dart';
 class TaskDetailScreen extends StatefulWidget {
   final String taskId;
 
-  TaskDetailScreen({required this.taskId});
+  const TaskDetailScreen({required this.taskId});
 
   @override
   _TaskDetailScreenState createState() => _TaskDetailScreenState();
@@ -15,188 +15,179 @@ class TaskDetailScreen extends StatefulWidget {
 class _TaskDetailScreenState extends State<TaskDetailScreen> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  User? _user;
-  Map<String, dynamic>? _taskData;
-  List<Map<String, dynamic>> _subtasks = [];
-  List<Map<String, dynamic>> _logs = [];
-  bool _isEditing = false;
 
+  bool _isEditing = false;
   TextEditingController _nameController = TextEditingController();
   TextEditingController _descriptionController = TextEditingController();
 
   @override
-  void initState() {
-    super.initState();
-    _user = _auth.currentUser;
-    _fetchTaskDetails();
-  }
-
-  Future<void> _fetchTaskDetails() async {
-    DocumentSnapshot taskDoc =
-        await _firestore.collection('tasks').doc(widget.taskId).get();
-    if (taskDoc.exists) {
-      setState(() {
-        _taskData = taskDoc.data() as Map<String, dynamic>;
-        _nameController.text = _taskData?['name'] ?? '';
-        _descriptionController.text = _taskData?['description'] ?? '';
-        _subtasks = List<Map<String, dynamic>>.from(
-          _taskData?['subtasks'] ?? [],
-        );
-        _logs = List<Map<String, dynamic>>.from(_taskData?['logs'] ?? []);
-      });
-    }
+  void dispose() {
+    _nameController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
   }
 
   Future<void> _updateTask() async {
-    if (_taskData != null) {
-      _taskData?['name'] = _nameController.text;
-      _taskData?['description'] = _descriptionController.text;
-
-      await _firestore
-          .collection('tasks')
-          .doc(widget.taskId)
-          .update(_taskData!);
-      _addLog("Task updated");
-      setState(() {
-        _isEditing = false; // Sau khi lưu, chuyển lại về chế độ xem.
-      });
-    }
-  }
-
-  Future<void> _addLog(String action) async {
     Map<String, dynamic> logEntry = {
-      'action': action,
-      'user': _user?.email ?? 'Unknown',
+      'action': 'Cập nhật Task',
+      'user': _auth.currentUser?.email ?? 'Unknown',
       'timestamp': Timestamp.now(),
     };
 
     await _firestore.collection('tasks').doc(widget.taskId).update({
+      'name': _nameController.text,
+      'description': _descriptionController.text,
       'logs': FieldValue.arrayUnion([logEntry]),
+    });
+
+    setState(() {
+      _isEditing = false;
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    // Dùng MediaQuery để lấy kích thước màn hình của thiết bị
-    double width = MediaQuery.of(context).size.width;
-
     return Scaffold(
       appBar: AppBar(
-        title: Text('Task Detail'),
+        title: Text('Chi tiết Task'),
         actions: [
-          // Hiển thị nút chỉnh sửa/ lưu trên AppBar
           IconButton(
             icon: Icon(_isEditing ? Icons.save : Icons.edit),
             onPressed: () {
-              setState(() {
-                if (_isEditing) {
-                  // Khi nhấn lưu, thực hiện cập nhật task
-                  _updateTask();
-                } else {
-                  // Chuyển sang chế độ chỉnh sửa
+              if (_isEditing) {
+                // Lưu
+                _updateTask(); // taskSnapshot sẽ không cần nữa
+              } else {
+                // Bật chế độ chỉnh sửa
+                setState(() {
                   _isEditing = true;
-                }
-              });
+                });
+              }
             },
           ),
         ],
       ),
-      body:
-          _taskData == null
-              ? Center(child: CircularProgressIndicator())
-              : Padding(
-                padding: EdgeInsets.all(16.0),
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Task Information (only viewable)
-                      Card(
-                        elevation: 5,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Padding(
-                          padding: EdgeInsets.all(16.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _isEditing
-                                  ? TextFormField(
-                                    controller: _nameController,
-                                    decoration: InputDecoration(
-                                      labelText: 'Tên Task',
-                                      border: OutlineInputBorder(),
-                                    ),
-                                  )
-                                  : Text(
-                                    'Tên Task: ${_taskData?['name']}',
+      body: StreamBuilder<DocumentSnapshot>(
+        stream: _firestore.collection('tasks').doc(widget.taskId).snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return Center(child: Text('Đã xảy ra lỗi: ${snapshot.error}'));
+          }
+
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(child: CircularProgressIndicator());
+          }
+
+          if (!snapshot.hasData || !snapshot.data!.exists) {
+            return Center(child: Text('Không tìm thấy Task.'));
+          }
+
+          final taskData = snapshot.data!.data() as Map<String, dynamic>;
+
+          final List<Map<String, dynamic>> logs =
+              List<Map<String, dynamic>>.from(taskData['logs'] ?? []);
+
+          // Gán text controller nếu chưa gán
+          if (!_isEditing) {
+            if (_nameController.text != taskData['name']) {
+              _nameController.text = taskData['name'] ?? '';
+            }
+            if (_descriptionController.text != taskData['description']) {
+              _descriptionController.text = taskData['description'] ?? '';
+            }
+          }
+
+          return Padding(
+            padding: EdgeInsets.all(16.0),
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Thông tin Task
+                  Card(
+                    elevation: 5,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _isEditing
+                              ? TextFormField(
+                                controller: _nameController,
+                                decoration: InputDecoration(
+                                  labelText: 'Tên Task',
+                                  border: OutlineInputBorder(),
+                                ),
+                              )
+                              : Text(
+                                'Tên Task: ${taskData['name']}',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                          SizedBox(height: 16),
+                          _isEditing
+                              ? TextFormField(
+                                controller: _descriptionController,
+                                decoration: InputDecoration(
+                                  labelText: 'Mô tả',
+                                  border: OutlineInputBorder(),
+                                ),
+                              )
+                              : Text(
+                                'Mô tả: ${taskData['description']}',
+                                style: TextStyle(fontSize: 18),
+                              ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 20),
+                  // Nhật ký Logs
+                  Text(
+                    'Nhật ký chỉnh sửa:',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                  ),
+                  SizedBox(height: 10),
+                  logs.isEmpty
+                      ? Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Text("Không có nhật ký nào."),
+                      )
+                      : Column(
+                        children:
+                            logs.map((log) {
+                              return Card(
+                                elevation: 3,
+                                margin: EdgeInsets.symmetric(vertical: 5),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: ListTile(
+                                  contentPadding: EdgeInsets.all(16),
+                                  title: Text(
+                                    log['action'],
                                     style: TextStyle(
-                                      fontSize: 18,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
-                              SizedBox(height: 16),
-                              _isEditing
-                                  ? TextFormField(
-                                    controller: _descriptionController,
-                                    decoration: InputDecoration(
-                                      labelText: 'Mô tả',
-                                      border: OutlineInputBorder(),
-                                    ),
-                                  )
-                                  : Text(
-                                    'Mô tả: ${_taskData?['description']}',
-                                    style: TextStyle(fontSize: 18),
+                                  subtitle: Text(
+                                    'Bởi ${log['user']} lúc ${log['timestamp'] != null ? DateFormat('dd/MM/yyyy HH:mm:ss').format(log['timestamp'].toDate()) : 'N/A'}',
                                   ),
-                            ],
-                          ),
-                        ),
+                                ),
+                              );
+                            }).toList(),
                       ),
-                      SizedBox(height: 20),
-                      // Logs Section
-                      Text(
-                        'Nhật ký chỉnh sửa:',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
-                        ),
-                      ),
-                      SizedBox(height: 10),
-                      // Display Logs in Cards
-                      _logs.isEmpty
-                          ? Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: Text("Không có nhật ký nào."),
-                          )
-                          : Column(
-                            children:
-                                _logs.map((log) {
-                                  return Card(
-                                    elevation: 3,
-                                    margin: EdgeInsets.symmetric(vertical: 5),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    child: ListTile(
-                                      contentPadding: EdgeInsets.all(16),
-                                      title: Text(
-                                        log['action'],
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      subtitle: Text(
-                                        'By ${log['user']} at ${log['timestamp'] != null ? DateFormat('dd/MM/yyyy HH:mm:ss').format(log['timestamp'].toDate()) : 'N/A'}',
-                                      ),
-                                    ),
-                                  );
-                                }).toList(),
-                          ),
-                    ],
-                  ),
-                ),
+                ],
               ),
+            ),
+          );
+        },
+      ),
     );
   }
 }

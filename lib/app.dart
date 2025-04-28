@@ -7,7 +7,6 @@ import 'package:poro_2/admin/admin_screen.dart';
 import 'package:poro_2/create_task.dart';
 import 'package:poro_2/profile_user_screen.dart';
 import 'package:poro_2/user/NotificationScreen.dart';
-import 'package:poro_2/user/SignUpPage.dart';
 import 'package:poro_2/user_screen.dart';
 
 import 'auth_gate.dart';
@@ -72,7 +71,6 @@ class MyApp extends StatelessWidget {
         path: '/notification',
         builder: (context, state) => NotificationScreen(),
       ),
-      GoRoute(path: '/sign_up', builder: (context, state) => SignUpPage()),
     ],
     debugLogDiagnostics: true,
   );
