@@ -85,7 +85,9 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
           final taskData = snapshot.data!.data() as Map<String, dynamic>;
 
           final List<Map<String, dynamic>> logs =
-              List<Map<String, dynamic>>.from(taskData['logs'] ?? []);
+              List<Map<String, dynamic>>.from(
+                taskData['logs'] ?? [],
+              ).reversed.toList();
 
           // Gán text controller nếu chưa gán
           if (!_isEditing) {

@@ -153,52 +153,77 @@ class _UserScreenState extends State<UserScreen> {
         .snapshots();
   }
 
+  // Kiểm tra xem tất cả task của project đã hoàn thành chưa
+  Future<bool> isProjectComplete(String projectId) async {
+    final taskSnapshot =
+        await _firestore
+            .collection('tasks')
+            .where('projectId', isEqualTo: projectId)
+            .get();
+
+    if (taskSnapshot.docs.isEmpty) return false;
+
+    return taskSnapshot.docs.every((doc) => doc['status'] == 'Complete');
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text('Cá nhân & Công việc'),
         actions: [
+          Tooltip(
+            message: "Xem project hoàn thành",
+            child: IconButton(
+              icon: Icon(Icons.check_circle_outline),
+              onPressed: () {
+                context.go('/completed-projects');
+              },
+            ),
+          ),
           StreamBuilder<QuerySnapshot>(
             stream: getNotificationStream(),
             builder: (context, snapshot) {
               int count = snapshot.data?.docs.length ?? 0;
-              return Stack(
-                children: [
-                  IconButton(
-                    icon: Icon(Icons.notifications),
-                    onPressed: () {
-                      context.go(
-                        '/notification',
-                      ); // Điều hướng tới màn NotificationScreen
-                    },
-                  ),
-                  if (count > 0)
-                    Positioned(
-                      right: 11,
-                      top: 11,
-                      child: Container(
-                        padding: EdgeInsets.all(2),
-                        decoration: BoxDecoration(
-                          color: Colors.red,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        constraints: BoxConstraints(
-                          minWidth: 16,
-                          minHeight: 16,
-                        ),
-                        child: Text(
-                          '$count',
-                          style: TextStyle(color: Colors.white, fontSize: 10),
-                          textAlign: TextAlign.center,
+              return Tooltip(
+                message: "Thông báo",
+                child: Stack(
+                  children: [
+                    IconButton(
+                      icon: Icon(Icons.notifications_none),
+                      onPressed: () {
+                        context.go('/notification');
+                      },
+                    ),
+                    if (count > 0)
+                      Positioned(
+                        right: 8,
+                        top: 8,
+                        child: Container(
+                          padding: EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: Colors.red,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Text(
+                            '$count',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                ],
+                  ],
+                ),
               );
             },
           ),
-          IconButton(icon: Icon(Icons.logout), onPressed: _logout),
+          Tooltip(
+            message: "Đăng xuất",
+            child: IconButton(icon: Icon(Icons.logout), onPressed: _logout),
+          ),
         ],
       ),
       body: Padding(
@@ -245,45 +270,7 @@ class _UserScreenState extends State<UserScreen> {
                   Expanded(
                     flex: 1,
                     child: StreamBuilder<QuerySnapshot>(
-                      stream:
-                          _userData?['role'] == 'manager'
-                              ? _firestore
-                                  .collection('projects')
-                                  .snapshots() // Quản lý thấy tất cả project
-                              : _firestore
-                                  .collection('tasks')
-                                  .where(
-                                    'assigneeId',
-                                    isEqualTo: _user?.uid,
-                                  ) // Lọc task theo assigneeId của nhân viên
-                                  .snapshots()
-                                  .asyncExpand((taskSnapshot) async* {
-                                    // Lấy danh sách projectId mà nhân viên A có task
-                                    List<String> projectIds =
-                                        taskSnapshot.docs
-                                            .map(
-                                              (task) =>
-                                                  task['projectId'] as String,
-                                            )
-                                            .toSet()
-                                            .toList();
-
-                                    if (projectIds.isEmpty) {
-                                      yield* Stream<
-                                        QuerySnapshot
-                                      >.empty(); // Không có project nào nếu không có task
-                                      return;
-                                    }
-
-                                    // Trả về danh sách project mà nhân viên A tham gia vào
-                                    yield* _firestore
-                                        .collection('projects')
-                                        .where(
-                                          FieldPath.documentId,
-                                          whereIn: projectIds,
-                                        )
-                                        .snapshots();
-                                  }),
+                      stream: getProjectsStream(),
                       builder: (context, snapshot) {
                         if (snapshot.connectionState ==
                             ConnectionState.waiting) {
@@ -296,59 +283,89 @@ class _UserScreenState extends State<UserScreen> {
 
                         var projects = snapshot.data!.docs;
 
-                        return ListView.builder(
-                          shrinkWrap: true,
-                          itemCount: projects.length,
-                          itemBuilder: (context, index) {
-                            var projectData =
-                                projects[index].data() as Map<String, dynamic>;
-                            String projectId = projects[index].id;
+                        return FutureBuilder<List<QueryDocumentSnapshot>>(
+                          future: Future.wait(
+                            projects.map((project) async {
+                              bool isComplete = await isProjectComplete(
+                                project.id,
+                              );
+                              return isComplete ? null : project;
+                            }).toList(),
+                          ).then(
+                            (list) =>
+                                list
+                                    .whereType<QueryDocumentSnapshot>()
+                                    .toList(),
+                          ),
+                          builder: (context, snapshot) {
+                            if (!snapshot.hasData) {
+                              return Center(child: CircularProgressIndicator());
+                            }
 
-                            // Kiểm tra project có được chọn không
-                            bool isSelected = _selectedProjectId == projectId;
+                            final filteredProjects = snapshot.data!;
+                            if (filteredProjects.isEmpty) {
+                              return Center(
+                                child: Text("Tất cả project đã hoàn thành."),
+                              );
+                            }
 
-                            return Card(
-                              color:
-                                  isSelected
-                                      ? Colors.blue[100]
-                                      : Colors.white, // Đổi màu nền
-                              child: ListTile(
-                                title: Text(
-                                  projectData['name'] ?? 'Unnamed Project',
-                                  style: TextStyle(
-                                    fontWeight:
-                                        isSelected
-                                            ? FontWeight.bold
-                                            : FontWeight.normal,
+                            return ListView.builder(
+                              shrinkWrap: true,
+                              itemCount: filteredProjects.length,
+                              itemBuilder: (context, index) {
+                                var projectData =
+                                    filteredProjects[index].data()
+                                        as Map<String, dynamic>;
+                                String projectId = filteredProjects[index].id;
+                                bool isSelected =
+                                    _selectedProjectId == projectId;
+
+                                return Card(
+                                  color:
+                                      isSelected
+                                          ? Colors.blue[100]
+                                          : Colors.white,
+                                  child: ListTile(
+                                    title: Text(
+                                      projectData['name'] ?? 'Unnamed Project',
+                                      style: TextStyle(
+                                        fontWeight:
+                                            isSelected
+                                                ? FontWeight.bold
+                                                : FontWeight.normal,
+                                      ),
+                                    ),
+                                    subtitle: Text(
+                                      "Người thực hiện: ${projectData['assigneeName'] ?? 'Chưa có người thực hiện'}",
+                                    ),
+                                    leading: Icon(
+                                      Icons.folder,
+                                      color: Colors.blue,
+                                    ),
+                                    trailing: IconButton(
+                                      icon: Icon(
+                                        Icons.list,
+                                        color:
+                                            isSelected
+                                                ? Colors.blue
+                                                : Colors.green,
+                                      ),
+                                      onPressed: () {
+                                        setState(() {
+                                          _selectedProjectId = projectId;
+                                        });
+                                      },
+                                    ),
+                                    onTap: () {
+                                      final projectName =
+                                          projectData['name'] ?? 'No Name';
+                                      context.go(
+                                        '/project-detail/$projectId/${Uri.encodeComponent(projectName)}',
+                                      );
+                                    },
                                   ),
-                                ),
-                                subtitle: Text(
-                                  "Người thực hiện: ${projectData['assignee'] ?? 'Chưa có người thực hiện'}",
-                                ),
-                                leading: Icon(Icons.folder, color: Colors.blue),
-                                trailing: IconButton(
-                                  icon: Icon(
-                                    Icons.list,
-                                    color:
-                                        isSelected
-                                            ? Colors.blue
-                                            : Colors.green, // Đổi màu icon
-                                  ),
-                                  onPressed: () {
-                                    setState(() {
-                                      _selectedProjectId = projectId;
-                                    });
-                                  },
-                                ),
-                                onTap: () {
-                                  final projectId = projects[index].id;
-                                  final projectName =
-                                      projectData['name'] ?? 'No Name';
-                                  context.go(
-                                    '/project-detail/$projectId/${Uri.encodeComponent(projectName)}',
-                                  );
-                                },
-                              ),
+                                );
+                              },
                             );
                           },
                         );
@@ -360,8 +377,8 @@ class _UserScreenState extends State<UserScreen> {
                   Expanded(
                     flex: 1,
                     child: StreamBuilder<QuerySnapshot>(
-                      stream:
-                          getTasksStream(), // Sử dụng stream mới lọc theo user
+                      stream: getTasksStream(),
+                      // Sử dụng stream mới lọc theo user
                       builder: (context, snapshot) {
                         if (snapshot.connectionState ==
                             ConnectionState.waiting) {
@@ -409,12 +426,10 @@ class _UserScreenState extends State<UserScreen> {
                                   ),
                                 ),
                                 onTap: () {
-                                  // Kiểm tra nếu taskData['taskId'] không phải null
                                   String? taskId = taskData['taskId'];
                                   if (taskId != null) {
                                     context.push('/task-detail/$taskId');
                                   } else {
-                                    // Xử lý khi taskId là null, ví dụ hiển thị thông báo lỗi
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
                                         content: Text('Task không hợp lệ!'),

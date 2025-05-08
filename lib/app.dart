@@ -6,6 +6,8 @@ import 'package:poro_2/TaskDetailScreen.dart';
 import 'package:poro_2/admin/admin_screen.dart';
 import 'package:poro_2/create_task.dart';
 import 'package:poro_2/profile_user_screen.dart';
+import 'package:poro_2/user/CompletedProjectDetailScreen.dart';
+import 'package:poro_2/user/CompletedProjectsScreen.dart';
 import 'package:poro_2/user/NotificationScreen.dart';
 import 'package:poro_2/user_screen.dart';
 
@@ -70,6 +72,23 @@ class MyApp extends StatelessWidget {
       GoRoute(
         path: '/notification',
         builder: (context, state) => NotificationScreen(),
+      ),
+      GoRoute(
+        path: '/completed-projects',
+        builder: (context, state) => CompletedProjectsScreen(),
+      ),
+      GoRoute(
+        path: '/completed-project-detail/:projectId/:projectName',
+        builder: (context, state) {
+          final projectId = state.pathParameters['projectId']!;
+          final projectName = Uri.decodeFull(
+            state.pathParameters['projectName']!,
+          );
+          return CompletedProjectDetailScreen(
+            projectId: projectId,
+            projectName: projectName,
+          );
+        },
       ),
     ],
     debugLogDiagnostics: true,
