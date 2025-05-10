@@ -172,6 +172,7 @@ class _UserScreenState extends State<UserScreen> {
       appBar: AppBar(
         title: Text('Cá nhân & Công việc'),
         actions: [
+          // Nút Project hoàn thành
           Tooltip(
             message: "Xem project hoàn thành",
             child: IconButton(
@@ -181,6 +182,20 @@ class _UserScreenState extends State<UserScreen> {
               },
             ),
           ),
+          // Nút Thống kê
+          Tooltip(
+            message: "Thống kê công việc",
+            child: IconButton(
+              icon: Icon(Icons.bar_chart),
+              onPressed: () {
+                // Khi nhấn vào, điều hướng đến màn hình thống kê
+                context.go(
+                  '/statistics',
+                ); // Thay '/statistics' bằng đường dẫn thích hợp của bạn
+              },
+            ),
+          ),
+          // Nút thông báo
           StreamBuilder<QuerySnapshot>(
             stream: getNotificationStream(),
             builder: (context, snapshot) {
@@ -220,6 +235,7 @@ class _UserScreenState extends State<UserScreen> {
               );
             },
           ),
+          // Nút Đăng xuất
           Tooltip(
             message: "Đăng xuất",
             child: IconButton(icon: Icon(Icons.logout), onPressed: _logout),

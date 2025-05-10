@@ -9,6 +9,7 @@ import 'package:poro_2/profile_user_screen.dart';
 import 'package:poro_2/user/CompletedProjectDetailScreen.dart';
 import 'package:poro_2/user/CompletedProjectsScreen.dart';
 import 'package:poro_2/user/NotificationScreen.dart';
+import 'package:poro_2/user/StatisticsScreen.dart';
 import 'package:poro_2/user_screen.dart';
 
 import 'auth_gate.dart';
@@ -89,6 +90,10 @@ class MyApp extends StatelessWidget {
             projectName: projectName,
           );
         },
+      ),
+      GoRoute(
+        path: '/statistics',
+        builder: (context, state) => StatisticsScreen(),
       ),
     ],
     debugLogDiagnostics: true,
