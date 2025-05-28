@@ -9,6 +9,7 @@ import 'package:poro_2/profile_user_screen.dart';
 import 'package:poro_2/user/CompletedProjectDetailScreen.dart';
 import 'package:poro_2/user/CompletedProjectsScreen.dart';
 import 'package:poro_2/user/NotificationScreen.dart';
+import 'package:poro_2/user/PhoneSignInScreen.dart';
 import 'package:poro_2/user/StatisticsScreen.dart';
 import 'package:poro_2/user_screen.dart';
 
@@ -27,6 +28,11 @@ class MyApp extends StatelessWidget {
       GoRoute(path: '/auth_gate', builder: (context, state) => AuthGate()),
       GoRoute(path: '/user_screen', builder: (context, state) => UserScreen()),
       GoRoute(path: '/admin', builder: (context, state) => AdminScreen()),
+      GoRoute(
+        path: '/phone_sign_in',
+        builder: (context, state) => const PhoneSignInScreen(),
+      ),
+
       GoRoute(
         path: '/create_project',
         builder: (context, state) => AdminProjectScreen(),
