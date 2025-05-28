@@ -10,6 +10,7 @@ import 'package:poro_2/user/CompletedProjectDetailScreen.dart';
 import 'package:poro_2/user/CompletedProjectsScreen.dart';
 import 'package:poro_2/user/NotificationScreen.dart';
 import 'package:poro_2/user/PhoneSignInScreen.dart';
+import 'package:poro_2/user/SearchProjectScreen.dart';
 import 'package:poro_2/user/StatisticsScreen.dart';
 import 'package:poro_2/user_screen.dart';
 
@@ -100,6 +101,10 @@ class MyApp extends StatelessWidget {
       GoRoute(
         path: '/statistics',
         builder: (context, state) => StatisticsScreen(),
+      ),
+      GoRoute(
+        path: '/search-project',
+        builder: (context, state) => SearchProjectScreen(),
       ),
     ],
     debugLogDiagnostics: true,

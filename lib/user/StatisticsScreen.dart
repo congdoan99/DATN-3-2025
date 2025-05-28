@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 class StatisticsScreen extends StatefulWidget {
   @override
@@ -34,6 +34,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
     }
   }
 
+  // Hàm lấy thống kê task (giữ nguyên)
   Future<Map<String, int>> _getTaskStatistics() async {
     if (_user == null || _userData == null) return {};
 
@@ -61,88 +62,151 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
     return stats;
   }
 
+  // Hàm mới: lấy số project hoàn thành
+  Future<int> _getCompletedProjectsCount() async {
+    if (_user == null || _userData == null) return 0;
+
+    QuerySnapshot snapshot;
+
+    if (_userData?['role'] == 'manager') {
+      // Manager xem tất cả project đã hoàn thành
+      snapshot =
+          await _firestore
+              .collection('projects')
+              .where('status', isEqualTo: 'Complete')
+              .get();
+    } else {
+      // User thường chỉ xem project liên quan (ví dụ có field memberIds hoặc assigneeId)
+      // Giả sử project có danh sách memberIds chứa userId
+      snapshot =
+          await _firestore
+              .collection('projects')
+              .where('status', isEqualTo: 'Complete')
+              .where('memberIds', arrayContains: _user!.uid)
+              .get();
+    }
+
+    return snapshot.size;
+  }
+
+  // Hàm kết hợp lấy cả thống kê task + project
+  Future<Map<String, dynamic>> _getStatistics() async {
+    final tasksStats = await _getTaskStatistics();
+    final completedProjects = await _getCompletedProjectsCount();
+
+    return {'tasks': tasksStats, 'completedProjects': completedProjects};
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Thống kê công việc')),
-      body: FutureBuilder<Map<String, int>>(
-        future: _getTaskStatistics(),
+      appBar: AppBar(
+        title: Text('Thống kê công việc'),
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back),
+          onPressed: () => context.go('/user_screen'),
+        ),
+      ),
+      body: FutureBuilder<Map<String, dynamic>>(
+        future: _getStatistics(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Center(child: CircularProgressIndicator());
           }
 
-          final data = snapshot.data ?? {};
-          final total = data.values.fold(0, (a, b) => a + b);
-
-          if (data.isEmpty || total == 0) {
+          if (!snapshot.hasData) {
             return Center(child: Text("Không có dữ liệu thống kê."));
           }
 
+          final Map<String, int> data = Map<String, int>.from(
+            snapshot.data!['tasks'] ?? {},
+          );
+          final int completedProjects =
+              snapshot.data!['completedProjects'] ?? 0;
+
+          final totalTasks = data.values.fold(0, (a, b) => a + b);
+
           return Padding(
             padding: const EdgeInsets.all(16.0),
-            child: Row(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Pie chart bên trái
-                Expanded(
-                  flex: 1,
-                  child: AspectRatio(
-                    aspectRatio: 1,
-                    child: PieChart(
-                      PieChartData(
-                        sections:
-                            data.entries.map((entry) {
-                              final double percent = entry.value / total * 100;
-                              return PieChartSectionData(
-                                value: entry.value.toDouble(),
-                                title: '${percent.toStringAsFixed(1)}%',
-                                color: _getTaskColor(entry.key),
-                                radius: 60,
-                                titleStyle: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                              );
-                            }).toList(),
-                        sectionsSpace: 2,
-                        centerSpaceRadius: 40,
-                      ),
-                    ),
-                  ),
+                Text(
+                  'Tổng số công việc: $totalTasks',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
+                SizedBox(height: 8),
+                Text(
+                  'Số project hoàn thành: $completedProjects',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                ),
+                SizedBox(height: 16),
 
-                SizedBox(width: 24),
+                if (totalTasks == 0)
+                  Center(child: Text("Không có dữ liệu thống kê công việc.")),
 
-                // Danh sách trạng thái bên phải
-                Expanded(
-                  flex: 1,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children:
-                        data.entries.map((entry) {
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 8.0),
-                            child: Row(
+                // Danh sách trạng thái công việc
+                ...data.entries.map((entry) {
+                  final double percent =
+                      totalTasks > 0 ? entry.value / totalTasks : 0;
+
+                  return Card(
+                    margin: const EdgeInsets.symmetric(vertical: 8),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 2,
+                    child: Padding(
+                      padding: const EdgeInsets.all(12.0),
+                      child: Row(
+                        children: [
+                          Icon(
+                            _getTaskIcon(entry.key),
+                            color: _getTaskColor(entry.key),
+                            size: 28,
+                          ),
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Container(
-                                  width: 16,
-                                  height: 16,
-                                  decoration: BoxDecoration(
-                                    color: _getTaskColor(entry.key),
-                                    shape: BoxShape.circle,
+                                Text(
+                                  entry.key,
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
                                   ),
                                 ),
-                                SizedBox(width: 8),
-                                Expanded(child: Text(entry.key)),
-                                Text('${entry.value}'),
+                                SizedBox(height: 6),
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(4),
+                                  child: LinearProgressIndicator(
+                                    value: percent,
+                                    backgroundColor: _getTaskColor(
+                                      entry.key,
+                                    ).withOpacity(0.2),
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      _getTaskColor(entry.key),
+                                    ),
+                                    minHeight: 8,
+                                  ),
+                                ),
                               ],
                             ),
-                          );
-                        }).toList(),
-                  ),
-                ),
+                          ),
+                          SizedBox(width: 12),
+                          Text(
+                            '${entry.value}',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }).toList(),
               ],
             ),
           );
@@ -163,6 +227,21 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
         return Colors.purple;
       default:
         return Colors.black;
+    }
+  }
+
+  IconData _getTaskIcon(String status) {
+    switch (status) {
+      case 'To Do':
+        return Icons.pending_actions;
+      case 'Doing':
+        return Icons.loop;
+      case 'Done':
+        return Icons.check_circle_outline;
+      case 'Complete':
+        return Icons.verified;
+      default:
+        return Icons.task;
     }
   }
 }

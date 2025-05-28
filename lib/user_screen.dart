@@ -182,6 +182,19 @@ class _UserScreenState extends State<UserScreen> {
               },
             ),
           ),
+          // Nút Tìm kiếm (Search)
+          Tooltip(
+            message: "Tìm kiếm project",
+            child: IconButton(
+              icon: Icon(Icons.search),
+              onPressed: () {
+                // Chuyển đến màn hình tìm kiếm hoặc hiện dialog tìm kiếm
+                context.go(
+                  '/search-project',
+                ); // hoặc mở dialog tìm kiếm tại đây
+              },
+            ),
+          ),
           // Nút Thống kê
           Tooltip(
             message: "Thống kê công việc",
@@ -280,6 +293,32 @@ class _UserScreenState extends State<UserScreen> {
                 style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    flex: 1,
+                    child: Text(
+                      "Danh sách Project",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: 16),
+                  Expanded(
+                    flex: 1,
+                    child: Text(
+                      "Danh sách Task",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 8),
               Row(
                 children: [
                   // Project List (Left side)
