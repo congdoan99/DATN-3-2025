@@ -3,14 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 class SearchProjectScreen extends StatefulWidget {
+  const SearchProjectScreen({super.key});
+
   @override
-  _SearchProjectScreenState createState() => _SearchProjectScreenState();
+  State<SearchProjectScreen> createState() => _SearchProjectScreenState();
 }
 
 class _SearchProjectScreenState extends State<SearchProjectScreen> {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  TextEditingController _controller = TextEditingController();
+  final TextEditingController _controller = TextEditingController();
   String _searchText = "";
+  Future<List<QueryDocumentSnapshot<Map<String, dynamic>>>>? _searchFuture;
 
   @override
   void dispose() {
@@ -22,124 +24,147 @@ class _SearchProjectScreenState extends State<SearchProjectScreen> {
     _controller.clear();
     setState(() {
       _searchText = "";
+      _searchFuture = null;
     });
   }
 
-  Stream<QuerySnapshot> _searchProjectsStream() {
-    if (_searchText.isEmpty) {
-      return Stream.value(
-        Stream<QuerySnapshot>.empty() as QuerySnapshot<Object?>,
-      ); // Trả về stream rỗng khi chưa search (cần tạo fake nếu muốn tránh lỗi)
-    }
+  Future<List<QueryDocumentSnapshot<Map<String, dynamic>>>>
+  _fetchAndFilterProjects(String text) async {
+    final snapshot =
+        await FirebaseFirestore.instance
+            .collection('projects')
+            .orderBy('createdAt', descending: true)
+            .limit(200) // Tải giới hạn 200 project
+            .get();
 
-    // Firestore không hỗ trợ tìm kiếm text đầy đủ, nên dùng query khoảng isGreaterThanOrEqualTo, isLessThanOrEqualTo để tìm prefix
-    return _firestore
-        .collection('projects')
-        .where(
-          'name',
-          isGreaterThanOrEqualTo: _searchText,
-          isLessThanOrEqualTo: _searchText + '\uf8ff',
-        )
-        .snapshots();
+    final lowerText = text.toLowerCase();
+
+    return snapshot.docs.where((doc) {
+      final name = (doc.data()['name'] ?? '').toString().toLowerCase();
+      return name.contains(lowerText);
+    }).toList();
+  }
+
+  void _onSearchChanged(String val) {
+    final trimmed = val.trim();
+    setState(() {
+      _searchText = trimmed;
+      if (trimmed.isNotEmpty) {
+        _searchFuture = _fetchAndFilterProjects(trimmed);
+      } else {
+        _searchFuture = null;
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Tìm kiếm Project'),
+        title: const Text('Tìm kiếm Project'),
         leading: IconButton(
-          icon: Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back),
           onPressed: () => context.go('/user_screen'),
         ),
         centerTitle: true,
       ),
       body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            TextField(
-              controller: _controller,
-              autofocus: true,
-              decoration: InputDecoration(
-                hintText: 'Nhập từ khóa...',
-                prefixIcon: Icon(Icons.search),
-                suffixIcon:
-                    _searchText.isNotEmpty
-                        ? GestureDetector(
-                          onTap: _clearSearch,
-                          child: Icon(Icons.clear),
-                        )
-                        : null,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              onChanged: (val) {
-                setState(() {
-                  _searchText = val.trim();
-                });
-              },
-            ),
-            SizedBox(height: 16),
-            Expanded(
-              child:
-                  _searchText.isEmpty
-                      ? Center(
-                        child: Text(
-                          'Nhập từ khóa để tìm project',
-                          style: TextStyle(fontSize: 16, color: Colors.grey),
-                        ),
-                      )
-                      : StreamBuilder<QuerySnapshot>(
-                        stream: _searchProjectsStream(),
-                        builder: (context, snapshot) {
-                          if (snapshot.connectionState ==
-                              ConnectionState.waiting) {
-                            return Center(child: CircularProgressIndicator());
-                          }
-
-                          if (!snapshot.hasData ||
-                              snapshot.data!.docs.isEmpty) {
-                            return Center(
-                              child: Text('Không tìm thấy project nào'),
-                            );
-                          }
-
-                          var projects = snapshot.data!.docs;
-
-                          return ListView.separated(
-                            itemCount: projects.length,
-                            separatorBuilder: (context, index) => Divider(),
-                            itemBuilder: (context, index) {
-                              var projectData =
-                                  projects[index].data()
-                                      as Map<String, dynamic>;
-                              String projectId = projects[index].id;
-                              String projectName =
-                                  projectData['name'] ?? 'Unnamed Project';
-
-                              return ListTile(
-                                title: Text(projectName),
-                                trailing: Icon(
-                                  Icons.arrow_forward_ios,
-                                  size: 16,
-                                ),
-                                onTap: () {
-                                  // Đóng màn tìm kiếm và chuyển sang màn chi tiết project
-                                  Navigator.of(context).pop();
-                                  // Hoặc nếu dùng GoRouter:
-                                  // context.go('/project-detail/$projectId/${Uri.encodeComponent(projectName)}');
-                                },
-                              );
-                            },
-                          );
-                        },
-                      ),
-            ),
+            _buildSearchInput(),
+            const SizedBox(height: 16),
+            Expanded(child: _buildProjectList()),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildSearchInput() {
+    return TextField(
+      controller: _controller,
+      autofocus: true,
+      decoration: InputDecoration(
+        hintText: 'Nhập từ khóa...',
+        prefixIcon: const Icon(Icons.search),
+        suffixIcon:
+            _searchText.isNotEmpty
+                ? GestureDetector(
+                  onTap: _clearSearch,
+                  child: const Icon(Icons.clear),
+                )
+                : null,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+      onChanged: _onSearchChanged,
+    );
+  }
+
+  Widget _buildProjectList() {
+    if (_searchText.isEmpty) {
+      return const Center(
+        child: Text(
+          'Nhập từ khóa để tìm project',
+          style: TextStyle(fontSize: 16, color: Colors.grey),
+        ),
+      );
+    }
+
+    return FutureBuilder<List<QueryDocumentSnapshot<Map<String, dynamic>>>>(
+      future: _searchFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final projects = snapshot.data ?? [];
+
+        if (projects.isEmpty) {
+          return const Center(child: Text('Không tìm thấy project nào'));
+        }
+
+        return ListView.separated(
+          itemCount: projects.length,
+          separatorBuilder: (_, __) => const Divider(),
+          itemBuilder: (context, index) {
+            final doc = projects[index];
+            final data = doc.data();
+            final id = doc.id;
+            final name = data['name'] ?? 'Unnamed Project';
+
+            return ProjectListItem(
+              projectId: id,
+              projectName: name,
+              onTap: () {
+                context.go('/project-detail/$id/${Uri.encodeComponent(name)}');
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+class ProjectListItem extends StatelessWidget {
+  final String projectId;
+  final String projectName;
+  final VoidCallback onTap;
+
+  const ProjectListItem({
+    super.key,
+    required this.projectId,
+    required this.projectName,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      title: Text(projectName),
+      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+      onTap: onTap,
     );
   }
 }
