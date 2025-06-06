@@ -86,19 +86,19 @@ class MyApp extends StatelessWidget {
         builder: (context, state) => CompletedProjectsScreen(),
       ),
       GoRoute(
-        path: '/completed-project-detail/:projectId',
-        builder: (context, state) {
-          final projectId = state.pathParameters['projectId']!;
-          return CompletedProjectDetailScreen(projectId: projectId);
-        },
-      ),
-      GoRoute(
         path: '/statistics',
         builder: (context, state) => StatisticsScreen(),
       ),
       GoRoute(
         path: '/search-project',
         builder: (context, state) => SearchProjectScreen(),
+      ),
+      GoRoute(
+        path: '/completed-project-detail/:projectId',
+        builder: (context, state) {
+          final projectId = state.pathParameters['projectId']!;
+          return CompletedProjectDetailScreen(projectId: projectId);
+        },
       ),
     ],
     debugLogDiagnostics: true,
