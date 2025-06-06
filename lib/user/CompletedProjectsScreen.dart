@@ -86,9 +86,7 @@ class CompletedProjectsScreen extends StatelessWidget {
                 subtitle: Text('Người thực hiện: $assigneeName'),
                 leading: Icon(Icons.check_circle, color: Colors.green),
                 onTap: () {
-                  context.go(
-                    '/completed-project-detail/$projectId/${Uri.encodeComponent(projectName)}',
-                  );
+                  context.go('/completed-project-detail/${project['id']}');
                 },
               );
             },

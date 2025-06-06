@@ -3,12 +3,8 @@ import 'package:flutter/material.dart';
 
 class CompletedProjectDetailScreen extends StatelessWidget {
   final String projectId;
-  final String projectName;
 
-  const CompletedProjectDetailScreen({
-    required this.projectId,
-    required this.projectName,
-  });
+  const CompletedProjectDetailScreen({super.key, required this.projectId});
 
   // Hàm lấy thông tin các task trong project
   Future<List<Map<String, dynamic>>> fetchProjectTasks() async {
