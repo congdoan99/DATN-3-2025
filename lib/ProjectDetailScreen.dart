@@ -251,6 +251,15 @@ class _ProcessColumnState extends State<ProcessColumn> {
                     if (taskController.text.trim().isNotEmpty &&
                         selectedUser != null) {
                       try {
+                        // Lấy tên người được chọn
+                        final assigneeDoc =
+                            await FirebaseFirestore.instance
+                                .collection('users')
+                                .doc(selectedUser)
+                                .get();
+                        final assigneeName =
+                            assigneeDoc.data()?['fullName'] ?? 'Không tên';
+
                         // Tạo taskId mới
                         String taskId =
                             FirebaseFirestore.instance
@@ -258,7 +267,7 @@ class _ProcessColumnState extends State<ProcessColumn> {
                                 .doc()
                                 .id;
 
-                        // Lưu task vào Firestore
+                        // Lưu task vào Firestore, có thêm assigneeName
                         await FirebaseFirestore.instance
                             .collection('tasks')
                             .doc(taskId)
@@ -268,6 +277,7 @@ class _ProcessColumnState extends State<ProcessColumn> {
                               'projectId': widget.projectId,
                               'processId': widget.processId,
                               'assigneeId': selectedUser,
+                              'assigneeName': assigneeName, // <-- thêm dòng này
                               'createdAt': Timestamp.now(),
                               'status': 'To Do', // hoặc trạng thái khác nếu cần
                             });

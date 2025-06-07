@@ -469,7 +469,7 @@ class _UserScreenState extends State<UserScreen> {
                                       ),
                                     ),
                                     Text(
-                                      "Người thực hiện: ${taskData['assignee'] ?? 'Chưa có'}",
+                                      "Người thực hiện: ${taskData['assigneeName'] ?? 'Chưa có'}",
                                       style: TextStyle(color: Colors.black54),
                                     ),
                                   ],
