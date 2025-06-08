@@ -54,15 +54,33 @@ class _AuthGateState extends State<AuthGate> {
     );
   }
 
+  // Future<String> _getUserRole(auth.User user) async {
+  //   DocumentSnapshot userDoc =
+  //       await FirebaseFirestore.instance
+  //           .collection('users')
+  //           .doc(user.uid)
+  //           .get();
+  //   return userDoc.exists
+  //       ? (userDoc['role'] ?? 'user')
+  //       : 'user'; // Trả về vai trò của người dùng
+  // }
+
   Future<String> _getUserRole(auth.User user) async {
-    DocumentSnapshot userDoc =
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .get();
-    return userDoc.exists
-        ? (userDoc['role'] ?? 'user')
-        : 'user'; // Trả về vai trò của người dùng
+    final userDoc = FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid);
+    final snapshot = await userDoc.get();
+
+    if (!snapshot.exists) {
+      await userDoc.set({
+        'role': 'employee',
+        'email': user.email ?? user.phoneNumber,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+      return 'employee';
+    }
+
+    return snapshot['role'] ?? 'user';
   }
 
   Widget _buildSignInScreen() {
@@ -100,7 +118,7 @@ class _AuthGateState extends State<AuthGate> {
             const SizedBox(height: 16),
             TextButton(
               onPressed: () {
-                context.push('/phone_sign_in');
+                context.push('/phone_sign_up');
               },
               child: const Text(
                 'Bạn chưa có tài khoản? Đăng ký',

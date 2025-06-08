@@ -9,10 +9,12 @@ import 'package:poro_2/profile_user_screen.dart';
 import 'package:poro_2/user/CompletedProjectDetailScreen.dart';
 import 'package:poro_2/user/CompletedProjectsScreen.dart';
 import 'package:poro_2/user/NotificationScreen.dart';
+import 'package:poro_2/user/PhoneVerifyScreen.dart';
 import 'package:poro_2/user/SearchProjectScreen.dart';
 import 'package:poro_2/user/StatisticsScreen.dart';
 import 'package:poro_2/user_screen.dart';
 
+import 'EmailSignUpScreen.dart';
 import 'auth_gate.dart';
 
 void main() {
@@ -28,10 +30,39 @@ class MyApp extends StatelessWidget {
       GoRoute(path: '/auth_gate', builder: (context, state) => AuthGate()),
       GoRoute(path: '/user_screen', builder: (context, state) => UserScreen()),
       GoRoute(path: '/admin', builder: (context, state) => AdminScreen()),
-      // GoRoute(
-      //   path: '/phone_sign_in',
-      //   builder: (context, state) => const PhoneRegisterScreen(),
-      // ),
+      // go_router.dart hoặc nơi huynh định nghĩa router
+      GoRoute(
+        path: '/phone_sign_up',
+        builder: (context, state) => const EmailSignUpScreen(),
+      ),
+      GoRoute(
+        path: '/phone_verify',
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>?;
+
+          // Nếu thiếu email hoặc password, điều hướng lại về /register
+          if (extra == null ||
+              !extra.containsKey('email') ||
+              !extra.containsKey('password') ||
+              (extra['email'] as String).isEmpty ||
+              (extra['password'] as String).isEmpty) {
+            // Dùng addPostFrameCallback để đảm bảo gọi context.go sau build
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              context.go('/phone_sign_up');
+            });
+
+            // Trả về widget tạm thời
+            return const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            );
+          }
+
+          return PhoneVerifyScreen(
+            email: extra['email'],
+            password: extra['password'],
+          );
+        },
+      ),
       GoRoute(
         path: '/create_project',
         builder: (context, state) => AdminProjectScreen(),
