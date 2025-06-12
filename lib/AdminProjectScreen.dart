@@ -1,8 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:multi_select_flutter/dialog/multi_select_dialog_field.dart';
-import 'package:multi_select_flutter/util/multi_select_item.dart';
 
 class AdminProjectScreen extends StatefulWidget {
   const AdminProjectScreen({super.key});
@@ -19,20 +17,13 @@ class _AdminProjectScreenState extends State<AdminProjectScreen> {
   String? _selectedAssigneeUid;
   String? _selectedAssigneeName;
   DateTime? _selectedDeadline;
-  List<String> _selectedProcesses = [];
 
-  final List<String> _availableProcesses = [
-    "To Do",
-    "Doing",
-    "Done",
-    "Complete",
-  ];
+  final List<String> _defaultProcesses = ["To Do", "Doing", "Done", "Complete"];
 
   Future<void> _createProject() async {
     if (_projectNameController.text.trim().isEmpty ||
         _selectedAssigneeUid == null ||
-        _selectedDeadline == null ||
-        _selectedProcesses.isEmpty) {
+        _selectedDeadline == null) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Vui lòng điền đủ thông tin.')));
@@ -55,7 +46,7 @@ class _AdminProjectScreenState extends State<AdminProjectScreen> {
             'assignee': assigneeUid,
             'assigneeName': assigneeName,
             'deadline': Timestamp.fromDate(deadline),
-            'processes': _selectedProcesses,
+            'processes': _defaultProcesses,
           });
 
       await FirebaseFirestore.instance.collection('notifications').add({
@@ -67,16 +58,17 @@ class _AdminProjectScreenState extends State<AdminProjectScreen> {
         'isRead': false,
       });
 
-      for (var process in _selectedProcesses) {
+      for (var process in _defaultProcesses) {
         await projectRef.collection('processes').add({
           'name': process,
-          'order': _availableProcesses.indexOf(process),
+          'order': _defaultProcesses.indexOf(process),
         });
       }
 
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Tạo project thành công!')));
+
       _projectNameController.clear();
       _descriptionController.clear();
       _deadlineController.clear();
@@ -84,7 +76,6 @@ class _AdminProjectScreenState extends State<AdminProjectScreen> {
         _selectedAssigneeUid = null;
         _selectedAssigneeName = null;
         _selectedDeadline = null;
-        _selectedProcesses = [];
       });
     } catch (e) {
       ScaffoldMessenger.of(
@@ -179,20 +170,6 @@ class _AdminProjectScreenState extends State<AdminProjectScreen> {
               decoration: InputDecoration(labelText: 'Hạn chót'),
               readOnly: true,
               onTap: () => _selectDeadline(context),
-            ),
-            SizedBox(height: 10),
-            MultiSelectDialogField(
-              items:
-                  _availableProcesses
-                      .map((e) => MultiSelectItem(e, e))
-                      .toList(),
-              title: Text("Chọn Process"),
-              selectedColor: Colors.blue,
-              buttonText: Text("Chọn Process"),
-              onConfirm:
-                  (values) => setState(
-                    () => _selectedProcesses = List<String>.from(values),
-                  ),
             ),
             SizedBox(height: 10),
             ElevatedButton(

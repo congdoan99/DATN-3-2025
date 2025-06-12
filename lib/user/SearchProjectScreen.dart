@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -12,11 +14,14 @@ class SearchProjectScreen extends StatefulWidget {
 class _SearchProjectScreenState extends State<SearchProjectScreen> {
   final TextEditingController _controller = TextEditingController();
   String _searchText = "";
+  String _statusFilter = 'all'; // all, completed, incomplete
   Future<List<QueryDocumentSnapshot<Map<String, dynamic>>>>? _searchFuture;
+  Timer? _debounce;
 
   @override
   void dispose() {
     _controller.dispose();
+    _debounce?.cancel();
     super.dispose();
   }
 
@@ -30,14 +35,20 @@ class _SearchProjectScreenState extends State<SearchProjectScreen> {
 
   Future<List<QueryDocumentSnapshot<Map<String, dynamic>>>>
   _fetchAndFilterProjects(String text) async {
-    final snapshot =
-        await FirebaseFirestore.instance
-            .collection('projects')
-            .orderBy('createdAt', descending: true)
-            .limit(200) // Tải giới hạn 200 project
-            .get();
-
     final lowerText = text.toLowerCase();
+
+    Query<Map<String, dynamic>> query = FirebaseFirestore.instance
+        .collection('projects')
+        .orderBy('createdAt', descending: true)
+        .limit(200);
+
+    if (_statusFilter == 'completed') {
+      query = query.where('isCompleted', isEqualTo: true);
+    } else if (_statusFilter == 'incomplete') {
+      query = query.where('isCompleted', isEqualTo: false);
+    }
+
+    final snapshot = await query.get();
 
     return snapshot.docs.where((doc) {
       final name = (doc.data()['name'] ?? '').toString().toLowerCase();
@@ -47,12 +58,22 @@ class _SearchProjectScreenState extends State<SearchProjectScreen> {
 
   void _onSearchChanged(String val) {
     final trimmed = val.trim();
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 400), () {
+      setState(() {
+        _searchText = trimmed;
+        _searchFuture =
+            trimmed.isNotEmpty ? _fetchAndFilterProjects(trimmed) : null;
+      });
+    });
+  }
+
+  void _onStatusChanged(String? newValue) {
+    if (newValue == null) return;
     setState(() {
-      _searchText = trimmed;
-      if (trimmed.isNotEmpty) {
-        _searchFuture = _fetchAndFilterProjects(trimmed);
-      } else {
-        _searchFuture = null;
+      _statusFilter = newValue;
+      if (_searchText.isNotEmpty) {
+        _searchFuture = _fetchAndFilterProjects(_searchText);
       }
     });
   }
@@ -82,22 +103,49 @@ class _SearchProjectScreenState extends State<SearchProjectScreen> {
   }
 
   Widget _buildSearchInput() {
-    return TextField(
-      controller: _controller,
-      autofocus: true,
-      decoration: InputDecoration(
-        hintText: 'Nhập từ khóa...',
-        prefixIcon: const Icon(Icons.search),
-        suffixIcon:
-            _searchText.isNotEmpty
-                ? GestureDetector(
-                  onTap: _clearSearch,
-                  child: const Icon(Icons.clear),
-                )
-                : null,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-      ),
-      onChanged: _onSearchChanged,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextField(
+          controller: _controller,
+          autofocus: true,
+          decoration: InputDecoration(
+            hintText: 'Nhập từ khóa...',
+            prefixIcon: const Icon(Icons.search),
+            suffixIcon:
+                _searchText.isNotEmpty
+                    ? GestureDetector(
+                      onTap: _clearSearch,
+                      child: const Icon(Icons.clear),
+                    )
+                    : null,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+          onChanged: _onSearchChanged,
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            const Text("Trạng thái: "),
+            const SizedBox(width: 8),
+            DropdownButton<String>(
+              value: _statusFilter,
+              items: const [
+                DropdownMenuItem(value: 'all', child: Text('Tất cả')),
+                DropdownMenuItem(
+                  value: 'completed',
+                  child: Text('Đã hoàn thành'),
+                ),
+                DropdownMenuItem(
+                  value: 'incomplete',
+                  child: Text('Chưa hoàn thành'),
+                ),
+              ],
+              onChanged: _onStatusChanged,
+            ),
+          ],
+        ),
+      ],
     );
   }
 
@@ -132,10 +180,12 @@ class _SearchProjectScreenState extends State<SearchProjectScreen> {
             final data = doc.data();
             final id = doc.id;
             final name = data['name'] ?? 'Unnamed Project';
+            final completed = data['isCompleted'] == true;
 
             return ProjectListItem(
               projectId: id,
               projectName: name,
+              isCompleted: completed,
               onTap: () {
                 context.go('/project-detail/$id/${Uri.encodeComponent(name)}');
               },
@@ -150,12 +200,14 @@ class _SearchProjectScreenState extends State<SearchProjectScreen> {
 class ProjectListItem extends StatelessWidget {
   final String projectId;
   final String projectName;
+  final bool isCompleted;
   final VoidCallback onTap;
 
   const ProjectListItem({
     super.key,
     required this.projectId,
     required this.projectName,
+    required this.isCompleted,
     required this.onTap,
   });
 
@@ -163,6 +215,7 @@ class ProjectListItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       title: Text(projectName),
+      subtitle: Text(isCompleted ? 'Đã hoàn thành' : 'Chưa hoàn thành'),
       trailing: const Icon(Icons.arrow_forward_ios, size: 16),
       onTap: onTap,
     );

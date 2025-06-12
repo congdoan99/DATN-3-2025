@@ -105,12 +105,22 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
         return;
       }
 
+      // 🔍 Lấy tên người thực hiện từ Firestore
+      DocumentSnapshot assigneeSnapshot =
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(selectedAssigneeId)
+              .get();
+
+      String assigneeName = assigneeSnapshot['fullName'] ?? 'Không rõ';
+
       await FirebaseFirestore.instance.collection('tasks').doc(taskId).set({
         'taskId': taskId,
         'name': taskNameController.text.trim(),
         'projectId': selectedProjectId,
         'processId': processId,
         'assigneeId': selectedAssigneeId,
+        'assigneeName': assigneeName, // 👈 thêm dòng này
         'dueDate': Timestamp.fromDate(dueDate!),
         'createdAt': FieldValue.serverTimestamp(),
         'priority': 1,
