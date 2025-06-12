@@ -83,7 +83,6 @@ class _AdminScreenState extends State<AdminScreen> {
   }
 
   Future<void> toggleUserStatus(String userId) async {
-    // Hiển thị hộp thoại xác nhận
     showDialog(
       context: context,
       builder: (context) {
@@ -92,22 +91,16 @@ class _AdminScreenState extends State<AdminScreen> {
           content: Text('Bạn có chắc chắn muốn xóa người dùng này không?'),
           actions: [
             TextButton(
-              onPressed: () {
-                Navigator.pop(context); // Đóng hộp thoại khi nhấn Hủy
-              },
+              onPressed: () => Navigator.pop(context),
               child: Text('Hủy'),
             ),
             ElevatedButton(
               onPressed: () async {
                 try {
-                  // Tiến hành xóa người dùng
                   await _firestore.collection('users').doc(userId).update({
                     'isVisible': false,
                   });
-
-                  // Đóng hộp thoại
                   Navigator.pop(context);
-
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('Người dùng đã bị xóa')),
                   );
@@ -207,9 +200,7 @@ class _AdminScreenState extends State<AdminScreen> {
             content: Text('Are you sure you want to log out?'),
             actions: [
               TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                },
+                onPressed: () => Navigator.pop(context),
                 child: Text('Cancel'),
               ),
               ElevatedButton(
@@ -232,7 +223,6 @@ class _AdminScreenState extends State<AdminScreen> {
     );
   }
 
-  // Hàm hiển thị form đăng ký
   void _showRegistrationForm() {
     showDialog(
       context: context,
@@ -307,16 +297,12 @@ class _AdminScreenState extends State<AdminScreen> {
         actions: [
           IconButton(
             icon: Icon(Icons.add_circle_outline),
-            onPressed: () {
-              context.go('/create_project');
-            },
+            onPressed: () => context.go('/create_project'),
             tooltip: 'Tạo Project',
           ),
           IconButton(
             icon: Icon(Icons.add_task),
-            onPressed: () {
-              context.go('/create_task');
-            },
+            onPressed: () => context.go('/create_task'),
             tooltip: 'Tạo Task',
           ),
           IconButton(
@@ -328,10 +314,43 @@ class _AdminScreenState extends State<AdminScreen> {
       ),
       body: Column(
         children: [
-          // Nút "Tạo tài khoản" thay vì form luôn hiển thị
-          ElevatedButton(
-            onPressed: _showRegistrationForm,
-            child: Text('Tạo tài khoản'),
+          Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: Colors.blue[50],
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.blueAccent),
+              ),
+              padding: EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Thêm người dùng mới",
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blue[800],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  ElevatedButton.icon(
+                    icon: Icon(Icons.person_add),
+                    label: Text("Tạo tài khoản"),
+                    onPressed: _showRegistrationForm,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blueAccent,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
           Expanded(
             child: StreamBuilder(
@@ -344,86 +363,122 @@ class _AdminScreenState extends State<AdminScreen> {
                 if (!snapshot.hasData)
                   return Center(child: CircularProgressIndicator());
 
-                return ListView(
-                  padding: EdgeInsets.symmetric(
-                    vertical: 8.0,
-                    horizontal: 10.0,
-                  ), // Thêm khoảng cách
-                  children:
-                      snapshot.data!.docs.map((doc) {
-                        return Card(
-                          elevation: 4, // Thêm độ đổ bóng nhẹ
-                          margin: EdgeInsets.symmetric(
-                            vertical: 8,
-                          ), // Khoảng cách giữa các card
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(
-                              10,
-                            ), // Bo tròn góc nhẹ
-                          ),
-                          child: ListTile(
-                            contentPadding: EdgeInsets.symmetric(
-                              vertical: 10,
-                              horizontal: 12,
-                            ), // Padding vừa phải
-                            leading: CircleAvatar(
-                              radius: 25, // Hình avatar nhỏ hơn
-                              backgroundColor: Colors.blueAccent,
+                return ListView.builder(
+                  padding: const EdgeInsets.all(12),
+                  itemCount: snapshot.data!.docs.length,
+                  itemBuilder: (context, index) {
+                    final doc = snapshot.data!.docs[index];
+                    final fullName = doc['fullName'] ?? '';
+                    final email = doc['email'] ?? '';
+                    final role = doc['role'] ?? '';
+                    final avatarChar =
+                        fullName.isNotEmpty ? fullName[0].toUpperCase() : '?';
+
+                    final List<Color> avatarColors = [
+                      Colors.indigo,
+                      Colors.teal,
+                      Colors.deepOrange,
+                      Colors.purple,
+                      Colors.brown,
+                    ];
+                    final color =
+                        avatarColors[fullName.hashCode % avatarColors.length];
+
+                    return Card(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 4,
+                      margin: const EdgeInsets.symmetric(vertical: 8),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 10,
+                          horizontal: 16,
+                        ),
+                        child: Row(
+                          children: [
+                            CircleAvatar(
+                              backgroundColor: color,
+                              radius: 26,
                               child: Text(
-                                doc['fullName'][0], // Lấy chữ cái đầu tiên của tên người dùng
-                                style: TextStyle(
-                                  fontSize: 20,
+                                avatarChar,
+                                style: const TextStyle(
+                                  fontSize: 22,
+                                  color: Colors.white,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
                             ),
-                            title: Text(
-                              doc['fullName'],
-                              style: TextStyle(
-                                fontSize:
-                                    16, // Kích thước chữ nhỏ hơn để vừa vặn
-                                fontWeight: FontWeight.w600,
-                                color: Colors.black87,
-                              ),
-                            ),
-                            subtitle: Padding(
-                              padding: const EdgeInsets.only(top: 5.0),
+                            const SizedBox(width: 16),
+                            Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Email: ${doc['email']}',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey[600],
+                                    fullName,
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
                                     ),
                                   ),
-                                  Text(
-                                    'Role: ${doc['role']}',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey[600],
-                                    ),
+                                  const SizedBox(height: 4),
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.mail,
+                                        size: 14,
+                                        color: Colors.grey,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Flexible(
+                                        child: Text(
+                                          email,
+                                          style: const TextStyle(
+                                            fontSize: 13,
+                                            color: Colors.grey,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.person,
+                                        size: 14,
+                                        color: Colors.grey,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        role,
+                                        style: const TextStyle(
+                                          fontSize: 13,
+                                          color: Colors.grey,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),
                             ),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                IconButton(
-                                  icon: Icon(Icons.edit, color: Colors.orange),
-                                  onPressed: () => _editUser(doc),
-                                ),
-                                IconButton(
-                                  icon: Icon(Icons.delete, color: Colors.red),
-                                  onPressed: () => toggleUserStatus(doc.id),
-                                ),
-                              ],
+                            const SizedBox(width: 12),
+                            IconButton(
+                              icon: Icon(Icons.edit, color: Colors.amber[800]),
+                              onPressed: () => _editUser(doc),
+                              tooltip: 'Chỉnh sửa',
                             ),
-                          ),
-                        );
-                      }).toList(),
+                            IconButton(
+                              icon: Icon(Icons.delete, color: Colors.redAccent),
+                              onPressed: () => toggleUserStatus(doc.id),
+                              tooltip: 'Xóa',
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
                 );
               },
             ),
