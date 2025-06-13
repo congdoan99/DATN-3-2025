@@ -24,38 +24,36 @@ class _AdminProjectScreenState extends State<AdminProjectScreen> {
     if (_projectNameController.text.trim().isEmpty ||
         _selectedAssigneeUid == null ||
         _selectedDeadline == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Vui lòng điền đủ thông tin.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Vui lòng điền đủ thông tin.')),
+      );
       return;
     }
 
     try {
-      String projectName = _projectNameController.text.trim();
-      String description = _descriptionController.text.trim();
-      String assigneeUid = _selectedAssigneeUid!;
-      String assigneeName = _selectedAssigneeName ?? '';
-      DateTime deadline = _selectedDeadline!;
-
-      var projectRef = await FirebaseFirestore.instance
+      final projectRef = await FirebaseFirestore.instance
           .collection('projects')
           .add({
-            'name': projectName,
-            'description': description,
-            'createdAt': Timestamp.now(),
-            'assignee': assigneeUid,
-            'assigneeName': assigneeName,
-            'deadline': Timestamp.fromDate(deadline),
+            'name': _projectNameController.text.trim(),
+            'description': _descriptionController.text.trim(),
+            'createdAt': FieldValue.serverTimestamp(), // ✅ CHỈNH Ở ĐÂY
+            'assignee': _selectedAssigneeUid,
+            'assigneeName': _selectedAssigneeName ?? '',
+            'deadline': Timestamp.fromDate(_selectedDeadline!),
             'processes': _defaultProcesses,
+            'isCompleted': false,
           });
 
       await FirebaseFirestore.instance.collection('notifications').add({
-        'title': 'Bạn đã được giao một dự án mới',
+        'title': 'Bạn được giao dự án mới',
         'description':
-            'Dự án "$projectName" đã được giao cho bạn với hạn chót ${deadline.toLocal().toString().split(' ')[0]}',
-        'timestamp': Timestamp.now(),
-        'assignee': assigneeUid,
+            'Dự án "${_projectNameController.text.trim()}" đã được tạo bởi Admin và giao cho bạn.',
+        'timestamp': FieldValue.serverTimestamp(),
+        'assigneeId': _selectedAssigneeUid,
+        'projectId': projectRef.id,
+        'projectName': _projectNameController.text.trim(),
         'isRead': false,
+        'type': 'project_assigned',
       });
 
       for (var process in _defaultProcesses) {
@@ -67,11 +65,12 @@ class _AdminProjectScreenState extends State<AdminProjectScreen> {
 
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Tạo project thành công!')));
+      ).showSnackBar(const SnackBar(content: Text('Tạo project thành công!')));
 
       _projectNameController.clear();
       _descriptionController.clear();
       _deadlineController.clear();
+
       setState(() {
         _selectedAssigneeUid = null;
         _selectedAssigneeName = null;
@@ -85,8 +84,7 @@ class _AdminProjectScreenState extends State<AdminProjectScreen> {
   }
 
   Future<List<Map<String, String>>> _getUsers() async {
-    QuerySnapshot snapshot =
-        await FirebaseFirestore.instance.collection('users').get();
+    final snapshot = await FirebaseFirestore.instance.collection('users').get();
     return snapshot.docs.map((doc) {
       return {
         'uid': doc.id,
@@ -97,7 +95,7 @@ class _AdminProjectScreenState extends State<AdminProjectScreen> {
   }
 
   Future<void> _selectDeadline(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
+    final picked = await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
       firstDate: DateTime(2000),
@@ -113,114 +111,139 @@ class _AdminProjectScreenState extends State<AdminProjectScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
       appBar: AppBar(
-        title: Text('Quản lý Project'),
+        title: const Text('Tạo Dự Án'),
         leading: IconButton(
-          icon: Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back),
           onPressed: () => context.go('/admin'),
         ),
       ),
-      body: Padding(
-        padding: EdgeInsets.all(16.0),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            TextFormField(
-              controller: _projectNameController,
-              decoration: InputDecoration(labelText: 'Tên Project'),
-            ),
-            TextFormField(
-              controller: _descriptionController,
-              decoration: InputDecoration(labelText: 'Mô tả Project'),
-            ),
-            FutureBuilder<List<Map<String, String>>>(
-              future: _getUsers(),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) return CircularProgressIndicator();
-                return DropdownButtonFormField<String>(
-                  value: _selectedAssigneeUid,
-                  decoration: InputDecoration(
-                    labelText: "Người thực hiện",
-                    border: OutlineInputBorder(),
-                  ),
-                  onChanged: (String? newValue) {
-                    final selectedUser = snapshot.data!.firstWhere(
-                      (user) => user['uid'] == newValue,
-                    );
-                    setState(() {
-                      _selectedAssigneeUid = newValue;
-                      _selectedAssigneeName = selectedUser['fullName'];
-                    });
-                  },
-                  items:
-                      snapshot.data!.map((user) {
-                        return DropdownMenuItem<String>(
-                          value: user['uid'],
-                          child: Text(
-                            "${user['fullName']} (${user['email']})",
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        );
-                      }).toList(),
-                );
-              },
-            ),
-            TextFormField(
-              controller: _deadlineController,
-              decoration: InputDecoration(labelText: 'Hạn chót'),
-              readOnly: true,
-              onTap: () => _selectDeadline(context),
-            ),
-            SizedBox(height: 10),
-            ElevatedButton(
-              onPressed: _createProject,
-              child: Text('Tạo Project'),
-            ),
-            Expanded(
-              child: StreamBuilder<QuerySnapshot>(
-                stream:
-                    FirebaseFirestore.instance
-                        .collection('projects')
-                        .snapshots(),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return Center(child: CircularProgressIndicator());
-                  }
-                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                    return Center(child: Text('Không có project nào.'));
-                  }
-                  var projects = snapshot.data!.docs;
+            Text("Thông tin dự án", style: theme.textTheme.headlineSmall),
+            const SizedBox(height: 20),
 
-                  return ListView.builder(
-                    itemCount: projects.length,
-                    itemBuilder: (context, index) {
-                      var doc = projects[index];
-                      return Card(
-                        margin: EdgeInsets.symmetric(vertical: 8),
-                        elevation: 3,
-                        child: ListTile(
-                          title: Text(
-                            doc['name'] ?? 'No Name',
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          subtitle: Text(
-                            'Người thực hiện: ${doc['assigneeName'] ?? 'Không có'}\n'
-                            'Hạn chót: ${doc['deadline']?.toDate()?.toString().split(' ')[0] ?? 'Không có'}',
-                          ),
-                          trailing: Icon(Icons.arrow_forward_ios, size: 18),
-                          onTap: () {
-                            context.go(
-                              '/project-detail/${doc.id}/${Uri.encodeComponent(doc['name'] ?? '')}',
-                            );
-                          },
+            _buildSectionCard(
+              children: [
+                _buildTextField(
+                  _projectNameController,
+                  'Tên Dự Án',
+                  icon: Icons.title,
+                ),
+                const SizedBox(height: 16),
+
+                _buildTextField(
+                  _descriptionController,
+                  'Mô tả',
+                  icon: Icons.description,
+                ),
+                const SizedBox(height: 16),
+
+                FutureBuilder<List<Map<String, String>>>(
+                  future: _getUsers(),
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+
+                    return DropdownButtonFormField<String>(
+                      value: _selectedAssigneeUid,
+                      decoration: InputDecoration(
+                        labelText: "Người thực hiện",
+                        prefixIcon: const Icon(Icons.person_outline),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(24),
                         ),
-                      );
-                    },
-                  );
-                },
+                      ),
+                      onChanged: (newValue) {
+                        final selectedUser = snapshot.data!.firstWhere(
+                          (user) => user['uid'] == newValue,
+                        );
+                        setState(() {
+                          _selectedAssigneeUid = newValue;
+                          _selectedAssigneeName = selectedUser['fullName'];
+                        });
+                      },
+                      items:
+                          snapshot.data!.map((user) {
+                            return DropdownMenuItem<String>(
+                              value: user['uid'],
+                              child: Text(
+                                "${user['fullName']} (${user['email']})",
+                              ),
+                            );
+                          }).toList(),
+                    );
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                TextFormField(
+                  controller: _deadlineController,
+                  readOnly: true,
+                  onTap: () => _selectDeadline(context),
+                  decoration: InputDecoration(
+                    labelText: 'Hạn chót',
+                    prefixIcon: const Icon(Icons.calendar_today),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 30),
+
+            ElevatedButton.icon(
+              onPressed: _createProject,
+              icon: const Icon(Icons.check_circle),
+              label: const Text('Tạo Project'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blueAccent,
+                padding: const EdgeInsets.symmetric(vertical: 18),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                textStyle: const TextStyle(fontSize: 18),
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTextField(
+    TextEditingController controller,
+    String label, {
+    IconData? icon,
+  }) {
+    return TextFormField(
+      controller: controller,
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: icon != null ? Icon(icon) : null,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(24)),
+      ),
+    );
+  }
+
+  Widget _buildSectionCard({required List<Widget> children}) {
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      elevation: 8,
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: children,
         ),
       ),
     );

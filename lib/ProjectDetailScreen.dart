@@ -77,11 +77,22 @@ class ProjectDetailScreen extends StatelessWidget {
         leading: IconButton(
           icon: Icon(Icons.arrow_back),
           onPressed: () async {
-            String role = await _getUserRole();
-            if (role == 'admin') {
-              context.go('/create_project');
+            // Lấy thông tin từ màn trước
+            final extra = GoRouterState.of(context).extra;
+            String? fromScreen;
+            if (extra is Map<String, dynamic>) {
+              fromScreen = extra['from'] as String?;
+            }
+
+            if (fromScreen == 'search') {
+              context.go('/search-project');
             } else {
-              context.go('/user_screen');
+              String role = await _getUserRole();
+              if (role == 'admin') {
+                context.go('/project_list');
+              } else {
+                context.go('/user_screen');
+              }
             }
           },
         ),
@@ -169,16 +180,17 @@ class _ProcessColumnState extends State<ProcessColumn> {
 
       String newProcessId = processQuery.docs.first.id;
 
-      // Cập nhật processId của task
+      // Cập nhật processId, status, và completedAt
       await FirebaseFirestore.instance.collection('tasks').doc(taskId).update({
         'processId': newProcessId,
         'status': toProcessName,
+        'completedAt':
+            toProcessName == 'Complete' ? FieldValue.serverTimestamp() : null,
       });
 
       // Ghi lại log
       await widget.addLog(taskId, "Moved to $toProcessName");
 
-      // Cập nhật lại số lượng task của cả bảng cũ và bảng mới
       if (mounted) {
         setState(() {});
       }
@@ -277,9 +289,9 @@ class _ProcessColumnState extends State<ProcessColumn> {
                               'projectId': widget.projectId,
                               'processId': widget.processId,
                               'assigneeId': selectedUser,
-                              'assigneeName': assigneeName, // <-- thêm dòng này
+                              'assigneeName': assigneeName,
                               'createdAt': Timestamp.now(),
-                              'status': 'To Do', // hoặc trạng thái khác nếu cần
+                              'status': 'To Do',
                             });
 
                         // Cập nhật lại danh sách task hiển thị
@@ -321,20 +333,6 @@ class _ProcessColumnState extends State<ProcessColumn> {
         return Colors.grey[200]!;
     }
   }
-
-  // Future<int> _getTaskCount(String processId) async {
-  //   try {
-  //     QuerySnapshot tasksSnapshot =
-  //         await FirebaseFirestore.instance
-  //             .collection('tasks')
-  //             .where('processId', isEqualTo: processId)
-  //             .get();
-  //     return tasksSnapshot.docs.length;
-  //   } catch (e) {
-  //     print("Lỗi khi lấy số lượng task: $e");
-  //     return 0;
-  //   }
-  // }
 
   @override
   Widget build(BuildContext context) {

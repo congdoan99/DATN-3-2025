@@ -148,7 +148,7 @@ class _UserScreenState extends State<UserScreen> {
   Stream<QuerySnapshot> getNotificationStream() {
     return _firestore
         .collection('notifications')
-        .where('userId', isEqualTo: _user?.uid)
+        .where('assigneeId', isEqualTo: _user?.uid)
         .where('isRead', isEqualTo: false)
         .snapshots();
   }
@@ -481,16 +481,8 @@ class _UserScreenState extends State<UserScreen> {
                                   ),
                                 ),
                                 onTap: () {
-                                  String? taskId = taskData['taskId'];
-                                  if (taskId != null) {
-                                    context.push('/task-detail/$taskId');
-                                  } else {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text('Task không hợp lệ!'),
-                                      ),
-                                    );
-                                  }
+                                  String taskId = tasks[index].id;
+                                  context.go('/task-detail/$taskId');
                                 },
                               ),
                             );

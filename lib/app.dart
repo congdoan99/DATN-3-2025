@@ -15,6 +15,7 @@ import 'package:poro_2/user/StatisticsScreen.dart';
 import 'package:poro_2/user_screen.dart';
 
 import 'EmailSignUpScreen.dart';
+import 'ProjectListScreen.dart';
 import 'auth_gate.dart';
 
 void main() {
@@ -62,6 +63,10 @@ class MyApp extends StatelessWidget {
             password: extra['password'],
           );
         },
+      ),
+      GoRoute(
+        path: '/project_list',
+        builder: (context, state) => ProjectListScreen(),
       ),
       GoRoute(
         path: '/create_project',
@@ -127,6 +132,18 @@ class MyApp extends StatelessWidget {
         builder: (context, state) {
           final projectId = state.pathParameters['projectId']!;
           return CompletedProjectDetailScreen(projectId: projectId);
+        },
+      ),
+      GoRoute(
+        path: '/project/:id',
+        builder: (context, state) {
+          final projectId = state.pathParameters['id']!;
+          final projectName = state.extra as String? ?? ''; // truyền qua extra
+
+          return ProjectDetailScreen(
+            projectId: projectId,
+            projectName: projectName,
+          );
         },
       ),
     ],

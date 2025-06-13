@@ -191,32 +191,39 @@ class _AdminScreenState extends State<AdminScreen> {
     );
   }
 
-  void confirmLogout() {
+  void confirmLogout(BuildContext context, FirebaseAuth auth) {
     showDialog(
       context: context,
       builder:
           (context) => AlertDialog(
-            title: Text('Confirm Logout'),
-            content: Text('Are you sure you want to log out?'),
+            title: const Text('Đăng xuất'),
+            content: const Text('Bạn có chắc chắn muốn đăng xuất?'),
             actions: [
               TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text('Cancel'),
+                onPressed:
+                    () => Navigator.of(context, rootNavigator: true).pop(),
+                child: const Text('Hủy'),
               ),
-              ElevatedButton(
+              TextButton(
                 onPressed: () async {
+                  Navigator.of(context, rootNavigator: true).pop();
                   try {
-                    await _auth.signOut();
-                    if (mounted) {
+                    await auth.signOut();
+                    if (context.mounted) {
                       context.go('/auth_gate');
                     }
                   } catch (e) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Logout failed: $e')),
-                    );
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Đăng xuất thất bại: $e')),
+                      );
+                    }
                   }
                 },
-                child: Text('Logout'),
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.red, // 👈 Màu chữ đỏ
+                ),
+                child: const Text('Đăng xuất'),
               ),
             ],
           ),
@@ -228,42 +235,60 @@ class _AdminScreenState extends State<AdminScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text("Tạo tài khoản mới"),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Text(
+            "Tạo tài khoản mới",
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+          ),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                TextField(
+                _buildTextField(
                   controller: emailController,
-                  decoration: InputDecoration(labelText: 'Email'),
+                  label: 'Email',
+                  icon: Icons.email,
                 ),
-                TextField(
+                _buildTextField(
                   controller: passwordController,
-                  decoration: InputDecoration(labelText: 'Mật khẩu'),
-                  obscureText: true,
+                  label: 'Mật khẩu',
+                  icon: Icons.lock,
+                  isPassword: true,
                 ),
-                TextField(
+                _buildTextField(
                   controller: phoneController,
-                  decoration: InputDecoration(labelText: 'Số điện thoại'),
+                  label: 'Số điện thoại',
+                  icon: Icons.phone,
                 ),
-                TextField(
+                _buildTextField(
                   controller: fullNameController,
-                  decoration: InputDecoration(labelText: 'Tên đầy đủ'),
+                  label: 'Tên đầy đủ',
+                  icon: Icons.person,
                 ),
-                TextField(
+                _buildTextField(
                   controller: addressController,
-                  decoration: InputDecoration(labelText: 'Địa chỉ'),
+                  label: 'Địa chỉ',
+                  icon: Icons.home,
                 ),
+                const SizedBox(height: 8),
                 DropdownButtonFormField<String>(
                   value: role,
-                  decoration: InputDecoration(labelText: 'Vai trò'),
+                  decoration: InputDecoration(
+                    labelText: 'Vai trò',
+                    prefixIcon: Icon(Icons.security),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
                   onChanged: (value) => setState(() => role = value!),
                   items:
                       ['admin', 'manager', 'employee', 'user']
                           .map(
-                            (role) => DropdownMenuItem(
-                              value: role,
-                              child: Text(role),
+                            (r) => DropdownMenuItem(
+                              value: r,
+                              child: Text(r.toUpperCase()),
                             ),
                           )
                           .toList(),
@@ -276,16 +301,41 @@ class _AdminScreenState extends State<AdminScreen> {
               onPressed: () => Navigator.pop(context),
               child: Text("Hủy"),
             ),
-            ElevatedButton(
+            ElevatedButton.icon(
+              icon: Icon(Icons.save),
+              label: Text("Lưu"),
               onPressed: () async {
                 await createUser();
                 Navigator.pop(context);
               },
-              child: Text("Lưu"),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blueAccent,
+                foregroundColor: Colors.white,
+              ),
             ),
           ],
         );
       },
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    bool isPassword = false,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: TextField(
+        controller: controller,
+        obscureText: isPassword,
+        decoration: InputDecoration(
+          labelText: label,
+          prefixIcon: Icon(icon),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      ),
     );
   }
 
@@ -295,6 +345,11 @@ class _AdminScreenState extends State<AdminScreen> {
       appBar: AppBar(
         title: Text('Quản lý hệ thống'),
         actions: [
+          IconButton(
+            icon: Icon(Icons.list_alt),
+            onPressed: () => context.go('/project_list'),
+            tooltip: 'Danh sách Project',
+          ),
           IconButton(
             icon: Icon(Icons.add_circle_outline),
             onPressed: () => context.go('/create_project'),
@@ -306,9 +361,9 @@ class _AdminScreenState extends State<AdminScreen> {
             tooltip: 'Tạo Task',
           ),
           IconButton(
-            icon: Icon(Icons.logout),
-            onPressed: confirmLogout,
-            tooltip: 'Logout',
+            icon: const Icon(Icons.logout),
+            tooltip: 'Đăng xuất',
+            onPressed: () => confirmLogout(context, FirebaseAuth.instance),
           ),
         ],
       ),

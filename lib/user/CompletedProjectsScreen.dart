@@ -46,7 +46,13 @@ class CompletedProjectsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Project đã hoàn thành')),
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.go('/user_screen'),
+        ),
+        title: const Text('Project đã hoàn thành'),
+      ),
       body: FutureBuilder<List<Map<String, dynamic>>>(
         future: fetchCompletedProjects(),
         builder: (context, snapshot) {

@@ -105,7 +105,6 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
         return;
       }
 
-      // 🔍 Lấy tên người thực hiện từ Firestore
       DocumentSnapshot assigneeSnapshot =
           await FirebaseFirestore.instance
               .collection('users')
@@ -120,11 +119,20 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
         'projectId': selectedProjectId,
         'processId': processId,
         'assigneeId': selectedAssigneeId,
-        'assigneeName': assigneeName, // 👈 thêm dòng này
+        'assigneeName': assigneeName,
         'dueDate': Timestamp.fromDate(dueDate!),
         'createdAt': FieldValue.serverTimestamp(),
         'priority': 1,
         'status': 'To Do',
+      });
+
+      // Thêm thông báo
+      await FirebaseFirestore.instance.collection('notifications').add({
+        'assigneeId': selectedAssigneeId,
+        'title': 'Bạn có task mới',
+        'description':
+            'Bạn được giao task "${taskNameController.text.trim()}" trong project "${projects.firstWhere((p) => p['id'] == selectedProjectId)['name']}".',
+        'timestamp': FieldValue.serverTimestamp(),
       });
 
       ScaffoldMessenger.of(
@@ -156,74 +164,127 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            DropdownButtonFormField<String>(
-              value: selectedProjectId,
-              onChanged: (value) async {
-                setState(() => selectedProjectId = value);
-                processId = await fetchHighestPriorityProcessIdBasedOnProject(
-                  value!,
-                );
-                setState(() {}); // Cập nhật UI
-              },
-              items:
-                  projects.map((project) {
-                    return DropdownMenuItem(
-                      value: project['id'],
-                      child: Text(project['name'] ?? ""),
-                    );
-                  }).toList(),
-              decoration: InputDecoration(labelText: "Chọn Project"),
-            ),
-            SizedBox(height: 10),
-            DropdownButtonFormField<String>(
-              value: selectedAssigneeId,
-              onChanged: (value) => setState(() => selectedAssigneeId = value),
-              items:
-                  assignees.map((user) {
-                    return DropdownMenuItem(
-                      value: user['id'],
-                      child: Text(user['name'] ?? ""),
-                    );
-                  }).toList(),
-              decoration: InputDecoration(labelText: "Chọn Người thực hiện"),
-            ),
-            SizedBox(height: 10),
-            TextField(
-              controller: taskNameController,
-              decoration: InputDecoration(labelText: 'Tên Task'),
-            ),
-            SizedBox(height: 10),
-            TextButton(
-              onPressed: () async {
-                DateTime? picked = await showDatePicker(
-                  context: context,
-                  initialDate: DateTime.now(),
-                  firstDate: DateTime.now(),
-                  lastDate: DateTime(2100),
-                );
-                if (picked != null) {
-                  setState(() => dueDate = picked);
-                }
-              },
-              child: Text(
-                dueDate == null
-                    ? "Chọn ngày"
-                    : DateFormat('dd/MM/yyyy').format(dueDate!),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Card(
+                elevation: 4,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    children: [
+                      DropdownButtonFormField<String>(
+                        value: selectedProjectId,
+                        decoration: InputDecoration(
+                          labelText: "Chọn Project",
+                          prefixIcon: Icon(Icons.folder),
+                          border: OutlineInputBorder(),
+                        ),
+                        onChanged: (value) async {
+                          setState(() => selectedProjectId = value);
+                          processId =
+                              await fetchHighestPriorityProcessIdBasedOnProject(
+                                value!,
+                              );
+                          setState(() {});
+                        },
+                        items:
+                            projects
+                                .map(
+                                  (project) => DropdownMenuItem(
+                                    value: project['id'],
+                                    child: Text(project['name'] ?? ""),
+                                  ),
+                                )
+                                .toList(),
+                      ),
+                      SizedBox(height: 12),
+                      DropdownButtonFormField<String>(
+                        value: selectedAssigneeId,
+                        decoration: InputDecoration(
+                          labelText: "Chọn Người thực hiện",
+                          prefixIcon: Icon(Icons.person),
+                          border: OutlineInputBorder(),
+                        ),
+                        onChanged:
+                            (value) =>
+                                setState(() => selectedAssigneeId = value),
+                        items:
+                            assignees
+                                .map(
+                                  (user) => DropdownMenuItem(
+                                    value: user['id'],
+                                    child: Text(user['name'] ?? ""),
+                                  ),
+                                )
+                                .toList(),
+                      ),
+                      SizedBox(height: 12),
+                      TextFormField(
+                        controller: taskNameController,
+                        decoration: InputDecoration(
+                          labelText: 'Tên Task',
+                          prefixIcon: Icon(Icons.task),
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                      SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Icon(Icons.date_range),
+                          SizedBox(width: 8),
+                          TextButton(
+                            onPressed: () async {
+                              DateTime? picked = await showDatePicker(
+                                context: context,
+                                initialDate: DateTime.now(),
+                                firstDate: DateTime.now(),
+                                lastDate: DateTime(2100),
+                              );
+                              if (picked != null) {
+                                setState(() => dueDate = picked);
+                              }
+                            },
+                            child: Text(
+                              dueDate == null
+                                  ? "Chọn ngày hết hạn"
+                                  : DateFormat('dd/MM/yyyy').format(dueDate!),
+                              style: TextStyle(fontSize: 16),
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 16),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: saveTask,
+                          icon: Icon(Icons.save),
+                          label: Text("Lưu Task"),
+                          style: ElevatedButton.styleFrom(
+                            padding: EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-            ),
-            SizedBox(height: 10),
-            ElevatedButton(onPressed: saveTask, child: Text("Lưu Task")),
-            SizedBox(height: 20),
-            if (selectedProjectId != null) ...[
-              Text(
-                "Danh sách Task trong 'To Do':",
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              Expanded(
-                child: StreamBuilder<QuerySnapshot>(
+              SizedBox(height: 20),
+              if (selectedProjectId != null) ...[
+                Text(
+                  "Danh sách Task trong 'To Do':",
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+                SizedBox(height: 10),
+                StreamBuilder<QuerySnapshot>(
                   stream:
                       processId == null
                           ? null
@@ -238,23 +299,39 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
                     }
 
                     var tasks = snapshot.data!.docs;
+                    if (tasks.isEmpty) {
+                      return Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Text("Chưa có task nào trong To Do."),
+                      );
+                    }
+
                     return ListView.builder(
+                      shrinkWrap: true,
+                      physics: NeverScrollableScrollPhysics(),
                       itemCount: tasks.length,
                       itemBuilder: (context, index) {
                         var task = tasks[index];
-                        return ListTile(
-                          title: Text(task['name']),
-                          subtitle: Text(
-                            "Ngày hết hạn: ${DateFormat('dd/MM/yyyy').format(task['dueDate'].toDate())}",
+                        return Card(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          margin: EdgeInsets.symmetric(vertical: 6),
+                          child: ListTile(
+                            leading: Icon(Icons.check_circle_outline),
+                            title: Text(task['name']),
+                            subtitle: Text(
+                              "Hết hạn: ${DateFormat('dd/MM/yyyy').format(task['dueDate'].toDate())}",
+                            ),
                           ),
                         );
                       },
                     );
                   },
                 ),
-              ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );

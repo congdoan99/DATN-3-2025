@@ -3,66 +3,99 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 class NotificationScreen extends StatelessWidget {
+  const NotificationScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
+    final currentUid = FirebaseAuth.instance.currentUser?.uid;
+
+    if (currentUid == null) {
+      return const Scaffold(body: Center(child: Text('Chưa đăng nhập')));
+    }
+
+    final notificationStream =
+        FirebaseFirestore.instance
+            .collection('notifications')
+            .where('assigneeId', isEqualTo: currentUid)
+            .orderBy('timestamp', descending: true)
+            .snapshots();
+
     return Scaffold(
-      appBar: AppBar(title: Text('Danh sách thông báo')),
+      appBar: AppBar(title: const Text('Thông báo')),
       body: StreamBuilder<QuerySnapshot>(
-        stream:
-            FirebaseFirestore.instance
-                .collection('notifications')
-                .where(
-                  'assignee',
-                  isEqualTo: FirebaseAuth.instance.currentUser?.uid,
-                )
-                .orderBy('timestamp', descending: true)
-                .snapshots(),
+        stream: notificationStream,
         builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            print("🔥 Lỗi khi tải thông báo: ${snapshot.error}");
+            return const Center(child: Text('Lỗi khi tải thông báo.'));
+          }
+
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator());
           }
+
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return Center(child: Text('Không có thông báo.'));
+            return const Center(child: Text('Không có thông báo.'));
           }
 
-          print("Dữ liệu thông báo: ${snapshot.data!.docs}");
-
-          var notifications = snapshot.data!.docs;
+          final notifications = snapshot.data!.docs;
 
           return ListView.builder(
             itemCount: notifications.length,
             itemBuilder: (context, index) {
-              var doc = notifications[index];
-              print("Thông báo: ${doc['title']}");
+              final doc = notifications[index];
+              final data = doc.data() as Map<String, dynamic>;
+              final docId = doc.id;
+              final title = data['title'] ?? 'Không có tiêu đề';
+              final description = data['description'] ?? '';
 
-              bool isRead = doc['isRead'] ?? false;
               return Card(
-                margin: EdgeInsets.symmetric(vertical: 8),
-                elevation: 3,
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: ListTile(
-                  title: Text(
-                    doc['title'] ?? 'Không có tiêu đề',
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                  leading: const Icon(
+                    Icons.notifications_active,
+                    color: Colors.blue,
                   ),
-                  subtitle: Text(doc['description'] ?? 'Không có mô tả'),
+                  title: Text(
+                    title,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: Text(description),
                   trailing: IconButton(
-                    icon: Icon(Icons.delete),
+                    icon: const Icon(Icons.delete),
                     onPressed: () async {
-                      await FirebaseFirestore.instance
-                          .collection('notifications')
-                          .doc(doc.id)
-                          .delete();
+                      final confirm = await showDialog<bool>(
+                        context: context,
+                        builder:
+                            (_) => AlertDialog(
+                              title: const Text('Xác nhận xóa'),
+                              content: const Text(
+                                'Huynh có chắc muốn xóa thông báo này không?',
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed:
+                                      () => Navigator.pop(context, false),
+                                  child: const Text('Hủy'),
+                                ),
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context, true),
+                                  child: const Text('Xóa'),
+                                ),
+                              ],
+                            ),
+                      );
+
+                      if (confirm == true) {
+                        await FirebaseFirestore.instance
+                            .collection('notifications')
+                            .doc(docId)
+                            .delete();
+                      }
                     },
                   ),
-                  leading: Icon(
-                    isRead ? Icons.check_circle : Icons.circle,
-                    color: isRead ? Colors.green : Colors.grey,
-                  ),
-                  onTap: () async {
-                    await FirebaseFirestore.instance
-                        .collection('notifications')
-                        .doc(doc.id)
-                        .update({'isRead': true});
+                  onTap: () {
+                    // Xử lý khi huynh nhấn vào thông báo, nếu cần.
                   },
                 ),
               );
