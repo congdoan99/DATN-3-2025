@@ -15,9 +15,11 @@ class ProfileUserScreen extends StatefulWidget {
 class _ProfileUserScreenState extends State<ProfileUserScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
   final TextEditingController fullNameController = TextEditingController();
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController addressController = TextEditingController();
+
   bool isEditing = false;
 
   @override
@@ -49,6 +51,29 @@ class _ProfileUserScreenState extends State<ProfileUserScreen> {
     }
   }
 
+  Widget _buildTextField({
+    required String label,
+    required TextEditingController controller,
+    required IconData icon,
+    bool enabled = false,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: TextField(
+        controller: controller,
+        enabled: enabled,
+        decoration: InputDecoration(
+          prefixIcon: Icon(icon),
+          labelText: label,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          filled: true,
+          fillColor: enabled ? Colors.white : Colors.grey.shade200,
+        ),
+        style: TextStyle(fontSize: 16),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -56,56 +81,100 @@ class _ProfileUserScreenState extends State<ProfileUserScreen> {
         title: Text("Thông tin cá nhân"),
         leading: IconButton(
           icon: Icon(Icons.arrow_back),
-          onPressed:
-              () => context.go('/user_screen'), // Điều hướng về trang admin
+          onPressed: () => context.go('/user_screen'),
         ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Icon(Icons.account_circle, size: 80, color: Colors.blue),
-            ),
-            SizedBox(height: 20),
-            TextField(
-              controller: fullNameController,
-              decoration: InputDecoration(labelText: "Tên"),
-              style: TextStyle(color: Colors.black, fontSize: 16),
-              enabled: isEditing,
-            ),
-            TextField(
-              controller: phoneController,
-              decoration: InputDecoration(labelText: "Số điện thoại"),
-              style: TextStyle(color: Colors.black, fontSize: 16),
-              enabled: isEditing,
-            ),
-            TextField(
-              controller: addressController,
-              decoration: InputDecoration(labelText: "Địa chỉ"),
-              style: TextStyle(color: Colors.black, fontSize: 16),
-              enabled: isEditing,
-            ),
-            SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Card(
+          elevation: 6,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
               children: [
-                ElevatedButton(
-                  onPressed: () {
-                    setState(() {
-                      isEditing = !isEditing;
-                    });
-                  },
-                  child: Text(isEditing ? "Hủy" : "Chỉnh sửa"),
+                Center(
+                  child: Column(
+                    children: [
+                      CircleAvatar(
+                        radius: 40,
+                        backgroundColor: Colors.blue.shade100,
+                        child: Icon(Icons.person, size: 50, color: Colors.blue),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        fullNameController.text,
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                    ],
+                  ),
                 ),
-                ElevatedButton(
-                  onPressed: isEditing ? _saveUserInfo : null,
-                  child: Text("Lưu"),
+                _buildTextField(
+                  label: "Tên đầy đủ",
+                  controller: fullNameController,
+                  icon: Icons.person,
+                  enabled: isEditing,
+                ),
+                _buildTextField(
+                  label: "Số điện thoại",
+                  controller: phoneController,
+                  icon: Icons.phone,
+                  enabled: isEditing,
+                ),
+                _buildTextField(
+                  label: "Địa chỉ",
+                  controller: addressController,
+                  icon: Icons.location_on,
+                  enabled: isEditing,
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        icon: Icon(isEditing ? Icons.cancel : Icons.edit),
+                        onPressed: () {
+                          setState(() {
+                            isEditing = !isEditing;
+                          });
+                        },
+                        label: Text(isEditing ? "Hủy" : "Chỉnh sửa"),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor:
+                              isEditing ? Colors.grey : Colors.blue,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        icon: Icon(Icons.save),
+                        onPressed: isEditing ? _saveUserInfo : null,
+                        label: Text("Lưu"),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
-          ],
+          ),
         ),
       ),
     );

@@ -11,6 +11,7 @@ class CreateTaskScreen extends StatefulWidget {
 class _CreateTaskScreenState extends State<CreateTaskScreen> {
   String? selectedProjectId;
   String? selectedAssigneeId;
+  String? suggestedAssigneeInfo;
   DateTime? dueDate;
   String? processId;
 
@@ -65,19 +66,53 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
               .collection('projects')
               .doc(projectId)
               .collection('processes')
-              .where('name', isEqualTo: 'To Do') // Chỉ lấy process "To Do"
+              .where('name', isEqualTo: 'To Do')
               .limit(1)
               .get();
 
       if (snapshot.docs.isNotEmpty) {
-        return snapshot.docs.first.id; // Trả về id nếu có sẵn
+        return snapshot.docs.first.id;
       }
 
-      return null; // Nếu không có thì trả về null (không tự tạo mới)
+      return null;
     } catch (e) {
       print("Lỗi khi lấy process: $e");
       return null;
     }
+  }
+
+  Future<String?> suggestBestAssignee(String projectId) async {
+    QuerySnapshot userSnapshot =
+        await FirebaseFirestore.instance.collection('users').get();
+
+    String? bestUserId;
+    String bestUserName = '';
+    int minTasks = 999999;
+
+    for (var user in userSnapshot.docs) {
+      String uid = user.id;
+      String name = user['fullName'] ?? 'Không rõ';
+
+      QuerySnapshot taskSnapshot =
+          await FirebaseFirestore.instance
+              .collection('tasks')
+              .where('projectId', isEqualTo: projectId)
+              .where('assigneeId', isEqualTo: uid)
+              .where('status', isNotEqualTo: 'Hoàn thành')
+              .get();
+
+      if (taskSnapshot.size < minTasks) {
+        minTasks = taskSnapshot.size;
+        bestUserId = uid;
+        bestUserName = name;
+      }
+    }
+
+    if (bestUserId != null) {
+      suggestedAssigneeInfo = '$bestUserName ($minTasks task)';
+    }
+
+    return bestUserId;
   }
 
   Future<void> saveTask() async {
@@ -126,7 +161,6 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
         'status': 'To Do',
       });
 
-      // Thêm thông báo
       await FirebaseFirestore.instance.collection('notifications').add({
         'assigneeId': selectedAssigneeId,
         'title': 'Bạn có task mới',
@@ -144,6 +178,7 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
         selectedProjectId = null;
         selectedAssigneeId = null;
         dueDate = null;
+        suggestedAssigneeInfo = null;
       });
     } catch (e) {
       ScaffoldMessenger.of(
@@ -159,7 +194,7 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
         title: Text('Tạo Task'),
         leading: IconButton(
           icon: Icon(Icons.arrow_back),
-          onPressed: () => context.go('/admin'), // Điều hướng về trang admin
+          onPressed: () => context.go('/admin'),
         ),
       ),
       body: Padding(
@@ -185,12 +220,24 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
                           border: OutlineInputBorder(),
                         ),
                         onChanged: (value) async {
-                          setState(() => selectedProjectId = value);
+                          setState(() {
+                            selectedProjectId = value;
+                            suggestedAssigneeInfo = null;
+                            selectedAssigneeId = null;
+                          });
+
                           processId =
                               await fetchHighestPriorityProcessIdBasedOnProject(
                                 value!,
                               );
-                          setState(() {});
+
+                          String? suggestedId = await suggestBestAssignee(
+                            value,
+                          );
+
+                          setState(() {
+                            selectedAssigneeId = suggestedId;
+                          });
                         },
                         items:
                             projects
@@ -223,6 +270,14 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
                                 )
                                 .toList(),
                       ),
+                      if (suggestedAssigneeInfo != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8.0),
+                          child: Text(
+                            "👤 Gợi ý: $suggestedAssigneeInfo",
+                            style: TextStyle(color: Colors.green),
+                          ),
+                        ),
                       SizedBox(height: 12),
                       TextFormField(
                         controller: taskNameController,
