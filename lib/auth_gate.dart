@@ -84,53 +84,61 @@ class _AuthGateState extends State<AuthGate> {
   }
 
   Widget _buildSignInScreen() {
-    return uiAuth.SignInScreen(
-      providers: [uiAuth.EmailAuthProvider()],
-      actions: [],
-      showAuthActionSwitch: false,
-      headerMaxExtent: 200,
-      headerBuilder: (context, constraints, _) {
-        return Padding(
-          padding: const EdgeInsets.only(top: 40, bottom: 20),
-          child: Image.asset(
-            'assets/logo_cd.png',
-            height: 100,
-            fit: BoxFit.contain,
-            errorBuilder: (context, error, stackTrace) {
-              print("Error loading image: $error");
-              return const Text('Không load được ảnh');
+    return Scaffold(
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 600), // Gò lại khung
+          child: uiAuth.SignInScreen(
+            providers: [uiAuth.EmailAuthProvider()],
+            actions: [],
+            showAuthActionSwitch: false,
+            headerMaxExtent: 200,
+            headerBuilder: (context, constraints, _) {
+              return Container(
+                width: double.infinity,
+                alignment: Alignment.center,
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 40, bottom: 20),
+                  child: Image.asset(
+                    'assets/logo_cd.png',
+                    height: 100,
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) {
+                      print("Error loading image: $error");
+                      return const Text('Không load được ảnh');
+                    },
+                  ),
+                ),
+              );
+            },
+            subtitleBuilder:
+                (context, action) => const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8.0),
+                  child: Text(
+                    'Quản lý công việc hiệu quả',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 16),
+                  ),
+                ),
+            footerBuilder: (context, action) {
+              return Column(
+                children: [
+                  const SizedBox(height: 16),
+                  TextButton(
+                    onPressed: () {
+                      context.push('/phone_sign_up');
+                    },
+                    child: const Text(
+                      'Bạn chưa có tài khoản? Đăng ký',
+                      style: TextStyle(color: Colors.blue, fontSize: 16),
+                    ),
+                  ),
+                ],
+              );
             },
           ),
-        );
-      },
-      subtitleBuilder:
-          (context, action) => const Padding(
-            padding: EdgeInsets.symmetric(vertical: 8.0),
-            child: Text(
-              'Quản lý công việc hiệu quả',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 16),
-            ),
-          ),
-      footerBuilder: (context, action) {
-        return Column(
-          children: [
-            const SizedBox(height: 16),
-            TextButton(
-              onPressed: () {
-                context.push('/phone_sign_up');
-              },
-              child: const Text(
-                'Bạn chưa có tài khoản? Đăng ký',
-                style: TextStyle(
-                  color: Colors.blue, // Đăng ký màu xanh dương
-                  fontSize: 16,
-                ),
-              ),
-            ),
-          ],
-        );
-      },
+        ),
+      ),
     );
   }
 }
