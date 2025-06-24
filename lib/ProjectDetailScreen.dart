@@ -43,32 +43,6 @@ class ProjectDetailScreen extends StatelessWidget {
     });
   }
 
-  Future<void> _ensureProcessesExist() async {
-    final processesSnapshot =
-        await FirebaseFirestore.instance
-            .collection('projects')
-            .doc(projectId)
-            .collection('processes')
-            .get();
-
-    if (processesSnapshot.docs.isEmpty) {
-      List<Map<String, dynamic>> defaultProcesses = [
-        {'name': 'To Do', 'order': 0},
-        {'name': 'Doing', 'order': 1},
-        {'name': 'Done', 'order': 2},
-        {'name': 'Complete', 'order': 3},
-      ];
-
-      for (var process in defaultProcesses) {
-        await FirebaseFirestore.instance
-            .collection('projects')
-            .doc(projectId)
-            .collection('processes')
-            .add(process);
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(

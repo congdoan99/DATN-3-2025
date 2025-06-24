@@ -36,7 +36,7 @@ class _AdminProjectScreenState extends State<AdminProjectScreen> {
           .add({
             'name': _projectNameController.text.trim(),
             'description': _descriptionController.text.trim(),
-            'createdAt': FieldValue.serverTimestamp(), // ✅ CHỈNH Ở ĐÂY
+            'createdAt': FieldValue.serverTimestamp(),
             'assignee': _selectedAssigneeUid,
             'assigneeName': _selectedAssigneeName ?? '',
             'deadline': Timestamp.fromDate(_selectedDeadline!),
@@ -84,7 +84,12 @@ class _AdminProjectScreenState extends State<AdminProjectScreen> {
   }
 
   Future<List<Map<String, String>>> _getUsers() async {
-    final snapshot = await FirebaseFirestore.instance.collection('users').get();
+    final snapshot =
+        await FirebaseFirestore.instance
+            .collection('users')
+            .where('role', isEqualTo: 'manager')
+            .get();
+
     return snapshot.docs.map((doc) {
       return {
         'uid': doc.id,
@@ -155,7 +160,7 @@ class _AdminProjectScreenState extends State<AdminProjectScreen> {
                     return DropdownButtonFormField<String>(
                       value: _selectedAssigneeUid,
                       decoration: InputDecoration(
-                        labelText: "Người thực hiện",
+                        labelText: "Người Quản Lý phụ trách",
                         prefixIcon: const Icon(Icons.person_outline),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(24),
