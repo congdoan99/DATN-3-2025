@@ -47,7 +47,7 @@ class ProjectDetailScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Quản lý Công Việc - $projectName'),
+        title: Text('Quản Lý Dự Án - $projectName'),
         leading: IconButton(
           icon: Icon(Icons.arrow_back),
           onPressed: () async {
@@ -141,6 +141,20 @@ class _ProcessColumnState extends State<ProcessColumn> {
     String toProcessName,
   ) async {
     try {
+      // Kiểm tra điều kiện trước khi di chuyển task
+      final isValid = await _canMoveTaskToStatus(taskId, toProcessName);
+      if (!isValid) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Không thể chuyển trạng thái. Các công việc con chưa hoàn thành.',
+            ),
+          ),
+        );
+        return;
+      }
+
+      // Lấy ID process mới
       QuerySnapshot processQuery =
           await FirebaseFirestore.instance
               .collection('projects')
@@ -154,7 +168,6 @@ class _ProcessColumnState extends State<ProcessColumn> {
 
       String newProcessId = processQuery.docs.first.id;
 
-      // Cập nhật processId, status, và completedAt
       await FirebaseFirestore.instance.collection('tasks').doc(taskId).update({
         'processId': newProcessId,
         'status': toProcessName,
@@ -162,12 +175,9 @@ class _ProcessColumnState extends State<ProcessColumn> {
             toProcessName == 'Complete' ? FieldValue.serverTimestamp() : null,
       });
 
-      // Ghi lại log
       await widget.addLog(taskId, "Moved to $toProcessName");
 
-      if (mounted) {
-        setState(() {});
-      }
+      if (mounted) setState(() {});
     } catch (e) {
       print("Lỗi khi di chuyển task: $e");
     }
@@ -411,4 +421,30 @@ class _ProcessColumnState extends State<ProcessColumn> {
       },
     );
   }
+}
+
+Future<bool> _canMoveTaskToStatus(String taskId, String newStatus) async {
+  final subtaskSnapshot =
+      await FirebaseFirestore.instance
+          .collection('subtasks')
+          .where('taskId', isEqualTo: taskId)
+          .get();
+
+  final subtasks = subtaskSnapshot.docs;
+
+  if (newStatus == 'Doing') {
+    return true; // Cho phép tự do kéo sang Doing
+  }
+
+  if (newStatus == 'Done') {
+    return subtasks.every(
+      (s) => s['status'] == 'Done' || s['status'] == 'Complete',
+    );
+  }
+
+  if (newStatus == 'Complete') {
+    return subtasks.every((s) => s['status'] == 'Complete');
+  }
+
+  return true;
 }

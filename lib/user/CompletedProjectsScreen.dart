@@ -51,7 +51,7 @@ class CompletedProjectsScreen extends StatelessWidget {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.go('/user_screen'),
         ),
-        title: const Text('Project đã hoàn thành'),
+        title: const Text('Dự Án Đã Hoàn Thành'),
       ),
       body: FutureBuilder<List<Map<String, dynamic>>>(
         future: fetchCompletedProjects(),
@@ -63,7 +63,7 @@ class CompletedProjectsScreen extends StatelessWidget {
           final projects = snapshot.data ?? [];
 
           if (projects.isEmpty) {
-            return const Center(child: Text('Chưa có project nào hoàn thành.'));
+            return const Center(child: Text('Chưa có dự án nào hoàn thành.'));
           }
 
           return ListView.builder(

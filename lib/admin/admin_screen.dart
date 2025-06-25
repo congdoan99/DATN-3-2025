@@ -14,7 +14,6 @@ class AdminScreen extends StatefulWidget {
 }
 
 class _AdminScreenState extends State<AdminScreen> {
-  // final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   final TextEditingController emailController = TextEditingController();
@@ -56,7 +55,7 @@ class _AdminScreenState extends State<AdminScreen> {
         if (mounted) {
           ScaffoldMessenger.of(
             context,
-          ).showSnackBar(SnackBar(content: Text('User created successfully')));
+          ).showSnackBar(SnackBar(content: Text('Tạo người dùng thành công')));
 
           emailController.clear();
           passwordController.clear();
@@ -71,7 +70,9 @@ class _AdminScreenState extends State<AdminScreen> {
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('User creation failed: ${data["error"]["message"]}'),
+            content: Text(
+              'Tạo người dùng thất bại: ${data["error"]["message"]}',
+            ),
           ),
         );
       }
@@ -343,22 +344,22 @@ class _AdminScreenState extends State<AdminScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Quản lý hệ thống'),
+        title: Text('Quản lý Hệ Thống'),
         actions: [
           IconButton(
             icon: Icon(Icons.list_alt),
             onPressed: () => context.go('/project_list'),
-            tooltip: 'Danh sách Project',
+            tooltip: 'Danh sách dự án',
           ),
           IconButton(
             icon: Icon(Icons.add_circle_outline),
             onPressed: () => context.go('/create_project'),
-            tooltip: 'Tạo Project',
+            tooltip: 'Tạo dự án',
           ),
           IconButton(
             icon: Icon(Icons.add_task),
             onPressed: () => context.go('/create_task'),
-            tooltip: 'Tạo Task',
+            tooltip: 'Tạo công việc',
           ),
           IconButton(
             icon: const Icon(Icons.logout),

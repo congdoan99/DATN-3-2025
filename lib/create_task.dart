@@ -38,7 +38,7 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
                 .toList();
       });
     } catch (e) {
-      print("Lỗi khi lấy danh sách project: $e");
+      print("Lỗi khi lấy danh sách dự án: $e");
     }
   }
 
@@ -163,15 +163,15 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
 
       await FirebaseFirestore.instance.collection('notifications').add({
         'assigneeId': selectedAssigneeId,
-        'title': 'Bạn có task mới',
+        'title': 'Bạn có công việc mới',
         'description':
-            'Bạn được giao task "${taskNameController.text.trim()}" trong project "${projects.firstWhere((p) => p['id'] == selectedProjectId)['name']}".',
+            'Bạn được giao công việc "${taskNameController.text.trim()}" trong dự án "${projects.firstWhere((p) => p['id'] == selectedProjectId)['name']}".',
         'timestamp': FieldValue.serverTimestamp(),
       });
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Task đã được tạo thành công!")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Công việc đã được tạo thành công!")),
+      );
 
       setState(() {
         taskNameController.clear();
@@ -183,7 +183,7 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
     } catch (e) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text("Lỗi khi tạo Task: $e")));
+      ).showSnackBar(SnackBar(content: Text("Lỗi khi tạo công việc: $e")));
     }
   }
 
@@ -191,7 +191,7 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Tạo Task'),
+        title: Text('Tạo Công Việc'),
         leading: IconButton(
           icon: Icon(Icons.arrow_back),
           onPressed: () => context.go('/admin'),
@@ -215,7 +215,7 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
                       DropdownButtonFormField<String>(
                         value: selectedProjectId,
                         decoration: InputDecoration(
-                          labelText: "Chọn Project",
+                          labelText: "Chọn Dự Án",
                           prefixIcon: Icon(Icons.folder),
                           border: OutlineInputBorder(),
                         ),
@@ -282,7 +282,7 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
                       TextFormField(
                         controller: taskNameController,
                         decoration: InputDecoration(
-                          labelText: 'Tên Task',
+                          labelText: 'Tên Công Việc',
                           prefixIcon: Icon(Icons.task),
                           border: OutlineInputBorder(),
                         ),
@@ -319,12 +319,14 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
                         child: ElevatedButton.icon(
                           onPressed: saveTask,
                           icon: Icon(Icons.save),
-                          label: Text("Lưu Task"),
+                          label: Text("Tạo Công Viêc"),
                           style: ElevatedButton.styleFrom(
-                            padding: EdgeInsets.symmetric(vertical: 14),
+                            backgroundColor: Colors.blueAccent,
+                            padding: const EdgeInsets.symmetric(vertical: 18),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
+                              borderRadius: BorderRadius.circular(24),
                             ),
+                            textStyle: const TextStyle(fontSize: 18),
                           ),
                         ),
                       ),
@@ -335,7 +337,7 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
               SizedBox(height: 20),
               if (selectedProjectId != null) ...[
                 Text(
-                  "Danh sách Task trong 'To Do':",
+                  "Danh sách công việc trong 'To Do':",
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                 ),
                 SizedBox(height: 10),
@@ -357,7 +359,7 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
                     if (tasks.isEmpty) {
                       return Padding(
                         padding: const EdgeInsets.all(8.0),
-                        child: Text("Chưa có task nào trong To Do."),
+                        child: Text("Chưa có công việc nào trong To Do."),
                       );
                     }
 

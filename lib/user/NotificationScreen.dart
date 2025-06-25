@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 class NotificationScreen extends StatelessWidget {
   const NotificationScreen({super.key});
@@ -21,7 +22,13 @@ class NotificationScreen extends StatelessWidget {
             .snapshots();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Thông báo')),
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.go('/user_screen'),
+        ),
+        title: const Text('Thông báo'),
+      ),
       body: StreamBuilder<QuerySnapshot>(
         stream: notificationStream,
         builder: (context, snapshot) {

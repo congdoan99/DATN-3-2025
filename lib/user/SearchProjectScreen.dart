@@ -65,7 +65,7 @@ class _SearchProjectScreenState extends State<SearchProjectScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Tìm kiếm Project'),
+        title: const Text('Tìm Kiếm Dự Án'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.go('/user_screen'),
@@ -109,7 +109,7 @@ class _SearchProjectScreenState extends State<SearchProjectScreen> {
     if (_searchText.isEmpty) {
       return const Center(
         child: Text(
-          'Nhập từ khóa để tìm project',
+          'Nhập từ khóa để tìm dự án',
           style: TextStyle(fontSize: 16, color: Colors.grey),
         ),
       );
@@ -125,7 +125,7 @@ class _SearchProjectScreenState extends State<SearchProjectScreen> {
         final projects = snapshot.data ?? [];
 
         if (projects.isEmpty) {
-          return const Center(child: Text('Không tìm thấy project nào'));
+          return const Center(child: Text('Không tìm thấy dự án nào'));
         }
 
         return ListView.separated(

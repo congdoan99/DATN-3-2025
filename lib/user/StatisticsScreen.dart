@@ -34,7 +34,6 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
     }
   }
 
-  // Hàm lấy thống kê task (giữ nguyên)
   Future<Map<String, int>> _getTaskStatistics() async {
     if (_user == null || _userData == null) return {};
 
@@ -62,22 +61,18 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
     return stats;
   }
 
-  // Hàm mới: lấy số project hoàn thành
   Future<int> _getCompletedProjectsCount() async {
     if (_user == null || _userData == null) return 0;
 
     QuerySnapshot snapshot;
 
     if (_userData?['role'] == 'manager') {
-      // Manager xem tất cả project đã hoàn thành
       snapshot =
           await _firestore
               .collection('projects')
               .where('status', isEqualTo: 'Complete')
               .get();
     } else {
-      // User thường chỉ xem project liên quan (ví dụ có field memberIds hoặc assigneeId)
-      // Giả sử project có danh sách memberIds chứa userId
       snapshot =
           await _firestore
               .collection('projects')
@@ -89,7 +84,6 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
     return snapshot.size;
   }
 
-  // Hàm kết hợp lấy cả thống kê task + project
   Future<Map<String, dynamic>> _getStatistics() async {
     final tasksStats = await _getTaskStatistics();
     final completedProjects = await _getCompletedProjectsCount();
@@ -101,9 +95,11 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Thống kê công việc'),
+        title: const Row(
+          children: [SizedBox(width: 8), Text('Thống Kê Công Việc')],
+        ),
         leading: IconButton(
-          icon: Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back),
           onPressed: () => context.go('/user_screen'),
         ),
       ),
@@ -111,11 +107,11 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
         future: _getStatistics(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator());
           }
 
           if (!snapshot.hasData) {
-            return Center(child: Text("Không có dữ liệu thống kê."));
+            return const Center(child: Text("Không có dữ liệu thống kê."));
           }
 
           final Map<String, int> data = Map<String, int>.from(
@@ -123,7 +119,6 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
           );
           final int completedProjects =
               snapshot.data!['completedProjects'] ?? 0;
-
           final totalTasks = data.values.fold(0, (a, b) => a + b);
 
           return Padding(
@@ -131,86 +126,120 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Tổng số công việc: $totalTasks',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  'Số project hoàn thành: $completedProjects',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-                ),
-                SizedBox(height: 16),
-
+                _buildSummaryCard(totalTasks, completedProjects),
+                const SizedBox(height: 16),
                 if (totalTasks == 0)
-                  Center(child: Text("Không có dữ liệu thống kê công việc.")),
-
-                // Danh sách trạng thái công việc
-                ...data.entries.map((entry) {
-                  final double percent =
-                      totalTasks > 0 ? entry.value / totalTasks : 0;
-
-                  return Card(
-                    margin: const EdgeInsets.symmetric(vertical: 8),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                  const Expanded(
+                    child: Center(
+                      child: Text("Không có dữ liệu thống kê công việc."),
                     ),
-                    elevation: 2,
-                    child: Padding(
-                      padding: const EdgeInsets.all(12.0),
-                      child: Row(
-                        children: [
-                          Icon(
-                            _getTaskIcon(entry.key),
-                            color: _getTaskColor(entry.key),
-                            size: 28,
-                          ),
-                          SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  entry.key,
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                SizedBox(height: 6),
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(4),
-                                  child: LinearProgressIndicator(
-                                    value: percent,
-                                    backgroundColor: _getTaskColor(
-                                      entry.key,
-                                    ).withOpacity(0.2),
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                      _getTaskColor(entry.key),
+                  )
+                else
+                  Expanded(
+                    child: ListView(
+                      children:
+                          data.entries.map((entry) {
+                            final double percent =
+                                totalTasks > 0 ? entry.value / totalTasks : 0;
+                            return Card(
+                              margin: const EdgeInsets.symmetric(vertical: 8),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              elevation: 3,
+                              child: Padding(
+                                padding: const EdgeInsets.all(14.0),
+                                child: Row(
+                                  children: [
+                                    CircleAvatar(
+                                      backgroundColor: _getTaskColor(
+                                        entry.key,
+                                      ).withOpacity(0.15),
+                                      child: Icon(
+                                        _getTaskIcon(entry.key),
+                                        color: _getTaskColor(entry.key),
+                                      ),
                                     ),
-                                    minHeight: 8,
-                                  ),
+                                    const SizedBox(width: 16),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            entry.key,
+                                            style: const TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 8),
+                                          LinearProgressIndicator(
+                                            value: percent,
+                                            backgroundColor: Colors.grey[200],
+                                            valueColor:
+                                                AlwaysStoppedAnimation<Color>(
+                                                  _getTaskColor(entry.key),
+                                                ),
+                                            minHeight: 8,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Column(
+                                      children: [
+                                        Text(
+                                          '${entry.value}',
+                                          style: const TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        Text(
+                                          '${(percent * 100).toStringAsFixed(1)}%',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.grey[600],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
                                 ),
-                              ],
-                            ),
-                          ),
-                          SizedBox(width: 12),
-                          Text(
-                            '${entry.value}',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
+                              ),
+                            );
+                          }).toList(),
                     ),
-                  );
-                }).toList(),
+                  ),
               ],
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildSummaryCard(int totalTasks, int completedProjects) {
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      color: Colors.blue.shade50,
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Số dự án đã hoàn thành: $completedProjects',
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Tổng số công việc: $totalTasks',
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -220,13 +249,13 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
       case 'To Do':
         return Colors.grey;
       case 'Doing':
-        return Colors.blue;
+        return Colors.orange;
       case 'Done':
         return Colors.green;
       case 'Complete':
         return Colors.purple;
       default:
-        return Colors.black;
+        return Colors.blueGrey;
     }
   }
 
@@ -235,9 +264,9 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
       case 'To Do':
         return Icons.pending_actions;
       case 'Doing':
-        return Icons.loop;
+        return Icons.autorenew;
       case 'Done':
-        return Icons.check_circle_outline;
+        return Icons.task_alt;
       case 'Complete':
         return Icons.verified;
       default:

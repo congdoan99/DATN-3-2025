@@ -174,7 +174,7 @@ class _UserScreenState extends State<UserScreen> {
         actions: [
           // Nút Project hoàn thành
           Tooltip(
-            message: "Xem project hoàn thành",
+            message: "Xem dự án hoàn thành",
             child: IconButton(
               icon: Icon(Icons.check_circle_outline),
               onPressed: () {
@@ -184,7 +184,7 @@ class _UserScreenState extends State<UserScreen> {
           ),
           // Nút Tìm kiếm (Search)
           Tooltip(
-            message: "Tìm kiếm project",
+            message: "Tìm kiếm dự án",
             child: IconButton(
               icon: Icon(Icons.search),
               onPressed: () {
@@ -263,7 +263,7 @@ class _UserScreenState extends State<UserScreen> {
             children: [
               // Account Section
               Text(
-                "Tài Khoản",
+                "Cá Nhân",
                 style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 16),
@@ -289,7 +289,7 @@ class _UserScreenState extends State<UserScreen> {
 
               // Project and Task Section
               Text(
-                "My Projects & Tasks",
+                "Dự Án & Công Việc",
                 style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 16),
@@ -298,7 +298,7 @@ class _UserScreenState extends State<UserScreen> {
                   Expanded(
                     flex: 1,
                     child: Text(
-                      "Danh sách Project",
+                      "Danh sách Dự Án",
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -309,7 +309,7 @@ class _UserScreenState extends State<UserScreen> {
                   Expanded(
                     flex: 1,
                     child: Text(
-                      "Danh sách Task",
+                      "Danh sách Công Việc",
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -333,7 +333,7 @@ class _UserScreenState extends State<UserScreen> {
                         }
 
                         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                          return Center(child: Text("Không có project nào."));
+                          return Center(child: Text("Không có dự án nào."));
                         }
 
                         var projects = snapshot.data!.docs;
@@ -360,7 +360,7 @@ class _UserScreenState extends State<UserScreen> {
                             final filteredProjects = snapshot.data!;
                             if (filteredProjects.isEmpty) {
                               return Center(
-                                child: Text("Tất cả project đã hoàn thành."),
+                                child: Text("Tất cả dự án đã hoàn thành."),
                               );
                             }
 
@@ -442,7 +442,7 @@ class _UserScreenState extends State<UserScreen> {
 
                         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                           return Center(
-                            child: Text("Không có task nào cho bạn."),
+                            child: Text("Không có công việc nào cho bạn."),
                           );
                         }
 

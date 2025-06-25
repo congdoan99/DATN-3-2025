@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart'; // Nếu huynh dùng GoRouter
+import 'package:go_router/go_router.dart';
 
 class ProjectListScreen extends StatelessWidget {
   const ProjectListScreen({super.key});
@@ -9,7 +9,7 @@ class ProjectListScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Danh sách Project'),
+        title: const Text('Danh Sách Dự Án'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
@@ -21,13 +21,13 @@ class ProjectListScreen extends StatelessWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
-            tooltip: 'Tạo Project mới',
+            tooltip: 'Tạo dự án mới',
             onPressed: () async {
               final result = await context.push('/create_project');
 
               if (result == true && context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Tạo project thành công')),
+                  const SnackBar(content: Text('Tạo dự án thành công')),
                 );
               }
             },
@@ -46,7 +46,7 @@ class ProjectListScreen extends StatelessWidget {
           }
 
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return const Center(child: Text('Không có project nào.'));
+            return const Center(child: Text('Không có dự án nào.'));
           }
 
           final projects = snapshot.data!.docs;
@@ -95,14 +95,14 @@ class ProjectListScreen extends StatelessWidget {
                           context: context,
                           builder:
                               (context) => AlertDialog(
-                                title: const Text('Chỉnh sửa Project'),
+                                title: const Text('Chỉnh sửa dự án'),
                                 content: Column(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     TextField(
                                       controller: nameController,
                                       decoration: const InputDecoration(
-                                        labelText: 'Tên Project',
+                                        labelText: 'Tên dự án',
                                       ),
                                     ),
                                     const SizedBox(height: 8),
@@ -173,7 +173,7 @@ class ProjectListScreen extends StatelessWidget {
                               (context) => AlertDialog(
                                 title: const Text('Xác nhận'),
                                 content: const Text(
-                                  'Bạn có chắc muốn ẩn project này không?',
+                                  'Bạn có chắc muốn ẩn dự án này không?',
                                 ),
                                 actions: [
                                   TextButton(
@@ -198,9 +198,7 @@ class ProjectListScreen extends StatelessWidget {
 
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Project đã được ẩn'),
-                              ),
+                              const SnackBar(content: Text('Dự án đã được ẩn')),
                             );
                           }
                         }

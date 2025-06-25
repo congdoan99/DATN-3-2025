@@ -65,7 +65,7 @@ class _AdminProjectScreenState extends State<AdminProjectScreen> {
 
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Tạo project thành công!')));
+      ).showSnackBar(const SnackBar(content: Text('Tạo dự án thành công!')));
 
       _projectNameController.clear();
       _descriptionController.clear();
@@ -131,7 +131,7 @@ class _AdminProjectScreenState extends State<AdminProjectScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text("Thông tin dự án", style: theme.textTheme.headlineSmall),
+            Text("Thông tin Dự Án", style: theme.textTheme.headlineSmall),
             const SizedBox(height: 20),
 
             _buildSectionCard(
@@ -209,7 +209,7 @@ class _AdminProjectScreenState extends State<AdminProjectScreen> {
             ElevatedButton.icon(
               onPressed: _createProject,
               icon: const Icon(Icons.check_circle),
-              label: const Text('Tạo Project'),
+              label: const Text('Tạo Dự Án'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.blueAccent,
                 padding: const EdgeInsets.symmetric(vertical: 18),

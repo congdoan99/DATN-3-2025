@@ -154,7 +154,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
-      title: 'Admin Panel',
+      title: 'Hệ thống quản lý công việc',
       theme: ThemeData(primarySwatch: Colors.blue),
       routerConfig: router, // Sử dụng `go_router`
     );
