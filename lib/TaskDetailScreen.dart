@@ -127,7 +127,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
             return const Center(child: CircularProgressIndicator());
           }
           if (!snapshot.hasData || !snapshot.data!.exists) {
-            return const Center(child: Text('Không tìm thấy task'));
+            return const Center(child: Text('Không tìm thấy công việc'));
           }
 
           final taskData = snapshot.data!.data() as Map<String, dynamic>;
@@ -171,14 +171,14 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
                 ? TextField(
                   controller: _nameController,
                   decoration: const InputDecoration(
-                    labelText: 'Tên Task',
+                    labelText: 'Tên Công Việc',
                     prefixIcon: Icon(Icons.title),
                     border: OutlineInputBorder(),
                   ),
                 )
                 : ListTile(
                   leading: const Icon(Icons.title),
-                  title: const Text('Tên Task'),
+                  title: const Text('Tên Công Việc'),
                   subtitle: Text(data['name'] ?? ''),
                 ),
             const SizedBox(height: 16),
@@ -326,30 +326,31 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
           ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
-        if (logs.isEmpty)
-          const Text("Không có nhật ký nào.")
-        else
-          ListView.builder(
-            physics: const NeverScrollableScrollPhysics(),
-            shrinkWrap: true,
-            itemCount: logs.length,
-            itemBuilder: (context, index) {
-              final log = logs[index];
-              return Card(
-                margin: const EdgeInsets.symmetric(vertical: 4),
-                child: ListTile(
-                  leading: const Icon(Icons.history),
-                  title: Text(
-                    log['action'] ?? '',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+        SizedBox(
+          height: 300, // huynh có thể chỉnh chiều cao này theo ý
+          child:
+              logs.isEmpty
+                  ? const Text("Không có nhật ký nào.")
+                  : ListView.builder(
+                    itemCount: logs.length,
+                    itemBuilder: (context, index) {
+                      final log = logs[index];
+                      return Card(
+                        margin: const EdgeInsets.symmetric(vertical: 4),
+                        child: ListTile(
+                          leading: const Icon(Icons.history),
+                          title: Text(
+                            log['action'] ?? '',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          subtitle: Text(
+                            'Bởi ${log['user']} lúc ${log['timestamp'] != null ? DateFormat('dd/MM/yyyy HH:mm:ss').format(log['timestamp'].toDate()) : 'N/A'}',
+                          ),
+                        ),
+                      );
+                    },
                   ),
-                  subtitle: Text(
-                    'Bởi ${log['user']} lúc ${log['timestamp'] != null ? DateFormat('dd/MM/yyyy HH:mm:ss').format(log['timestamp'].toDate()) : 'N/A'}',
-                  ),
-                ),
-              );
-            },
-          ),
+        ),
       ],
     );
   }
