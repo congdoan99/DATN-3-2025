@@ -102,8 +102,8 @@ class _AdminProjectScreenState extends State<AdminProjectScreen> {
   Future<void> _selectDeadline(BuildContext context) async {
     final picked = await showDatePicker(
       context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(2000),
+      initialDate: DateTime.now().add(const Duration(days: 1)),
+      firstDate: DateTime.now().add(const Duration(days: 1)),
       lastDate: DateTime(2101),
     );
     if (picked != null) {

@@ -69,6 +69,7 @@ class MyApp extends StatelessWidget {
         builder: (context, state) => ProjectListScreen(),
       ),
       GoRoute(
+        name: 'create_project',
         path: '/create_project',
         builder: (context, state) => AdminProjectScreen(),
       ),

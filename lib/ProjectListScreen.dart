@@ -45,7 +45,7 @@ class _ProjectListScreenState extends State<ProjectListScreen>
             icon: const Icon(Icons.add),
             tooltip: 'Tạo dự án mới',
             onPressed: () async {
-              final result = await context.push('/create_project');
+              final result = await context.pushNamed('create_project');
               if (result == true && context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Tạo dự án thành công')),
@@ -58,10 +58,8 @@ class _ProjectListScreenState extends State<ProjectListScreen>
       body: TabBarView(
         controller: _tabController,
         children: [
-          _buildProjectList(
-            false,
-          ), // Dự án đang hoạt động (không có status hoặc khác "Complete")
-          _buildProjectList(true), // Dự án đã hoàn thành (status == "Complete")
+          _buildProjectList(false), // Đang hoạt động
+          _buildProjectList(true), // Đã hoàn thành
         ],
       ),
     );
@@ -78,18 +76,20 @@ class _ProjectListScreenState extends State<ProjectListScreen>
         }
 
         if (!snapshot.hasData) {
-          return Center(child: Text('Không có dữ liệu.'));
+          return const Center(child: Text('Không có dữ liệu.'));
         }
 
         final allDocs = snapshot.data!.docs;
 
         final filteredProjects =
             allDocs.where((doc) {
-              final hasStatus = doc.data().toString().contains('status');
-              final status = hasStatus ? doc['status'] : null;
-              return isCompleted
-                  ? status == 'Complete'
-                  : status == null || status != 'Complete';
+              final data = doc.data() as Map<String, dynamic>;
+              final status = data['status'];
+              final isVisible = data['isVisible'] ?? true;
+
+              if (!isVisible) return false;
+
+              return isCompleted ? status == 'Complete' : status != 'Complete';
             }).toList();
 
         if (filteredProjects.isEmpty) {
@@ -106,8 +106,9 @@ class _ProjectListScreenState extends State<ProjectListScreen>
           itemCount: filteredProjects.length,
           itemBuilder: (context, index) {
             final doc = filteredProjects[index];
-            final name = doc['name'] ?? 'Chưa đặt tên';
-            final description = doc['description'] ?? '';
+            final data = doc.data() as Map<String, dynamic>;
+            final name = data['name'] ?? 'Chưa đặt tên';
+            final description = data['description'] ?? '';
             final projectId = doc.id;
 
             return Card(
@@ -137,10 +138,10 @@ class _ProjectListScreenState extends State<ProjectListScreen>
                           onSelected: (value) async {
                             if (value == 'edit') {
                               final nameController = TextEditingController(
-                                text: doc['name'],
+                                text: data['name'],
                               );
                               final descController = TextEditingController(
-                                text: doc['description'],
+                                text: data['description'],
                               );
 
                               showDialog(
@@ -219,14 +220,14 @@ class _ProjectListScreenState extends State<ProjectListScreen>
                                       ],
                                     ),
                               );
-                            } else if (value == 'delete') {
+                            } else if (value == 'hide') {
                               final confirm = await showDialog<bool>(
                                 context: context,
                                 builder:
                                     (context) => AlertDialog(
                                       title: const Text('Xác nhận'),
                                       content: const Text(
-                                        'Bạn có chắc muốn hoàn thành dự án này không?',
+                                        'Bạn có chắc muốn ẩn dự án này không?',
                                       ),
                                       actions: [
                                         TextButton(
@@ -239,7 +240,7 @@ class _ProjectListScreenState extends State<ProjectListScreen>
                                           onPressed:
                                               () =>
                                                   Navigator.pop(context, true),
-                                          child: const Text('Đồng ý'),
+                                          child: const Text('Xác nhận'),
                                         ),
                                       ],
                                     ),
@@ -249,12 +250,12 @@ class _ProjectListScreenState extends State<ProjectListScreen>
                                 await FirebaseFirestore.instance
                                     .collection('projects')
                                     .doc(projectId)
-                                    .update({'status': 'Complete'});
+                                    .update({'isVisible': false});
 
                                 if (context.mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
-                                      content: Text('Dự án đã được hoàn thành'),
+                                      content: Text('Dự án đã được ẩn'),
                                     ),
                                   );
                                 }
@@ -268,8 +269,8 @@ class _ProjectListScreenState extends State<ProjectListScreen>
                                   child: Text('Sửa'),
                                 ),
                                 PopupMenuItem(
-                                  value: 'delete',
-                                  child: Text('Hoàn thành'),
+                                  value: 'hide',
+                                  child: Text('Xóa ẩn'),
                                 ),
                               ],
                         ),
