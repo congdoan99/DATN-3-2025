@@ -146,6 +146,27 @@ class MyApp extends StatelessWidget {
           );
         },
       ),
+      GoRoute(
+        path: '/task_detail/:taskId',
+        builder: (context, state) {
+          final taskId = state.pathParameters['taskId']!;
+          return TaskDetailScreen(taskId: taskId);
+        },
+      ),
+      GoRoute(
+        path: '/project_detail/:projectId',
+        builder: (context, state) {
+          final projectId = state.pathParameters['projectId']!;
+          final extra = state.extra as Map<String, dynamic>?;
+
+          final projectName = extra?['projectName'] ?? 'Dự án';
+
+          return ProjectDetailScreen(
+            projectId: projectId,
+            projectName: projectName,
+          );
+        },
+      ),
     ],
     debugLogDiagnostics: true,
   );

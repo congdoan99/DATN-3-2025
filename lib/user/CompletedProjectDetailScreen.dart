@@ -159,6 +159,13 @@ class CompletedProjectDetailScreen extends StatelessWidget {
                               color: Colors.grey[700],
                             ),
                           ),
+                          Text(
+                            '👷 Người thực hiện: ${task['assigneeName'] ?? 'Không rõ'}',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[700],
+                            ),
+                          ),
                           if (completedAt != null)
                             Text(
                               '✅ Hoàn thành: ${completedAt.toString().split(' ')[0]}',

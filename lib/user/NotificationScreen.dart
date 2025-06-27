@@ -101,8 +101,43 @@ class NotificationScreen extends StatelessWidget {
                       }
                     },
                   ),
-                  onTap: () {
-                    // Xử lý khi huynh nhấn vào thông báo, nếu cần.
+                  onTap: () async {
+                    final taskId = data['taskId'];
+                    final projectId = data['projectId'];
+
+                    // Lấy role của người dùng hiện tại
+                    final userDoc =
+                        await FirebaseFirestore.instance
+                            .collection('users')
+                            .doc(currentUid)
+                            .get();
+                    final role = userDoc.data()?['role'];
+
+                    if (role == 'manager' && projectId != null) {
+                      // Lấy tên dự án để truyền sang ProjectDetailScreen
+                      final projectDoc =
+                          await FirebaseFirestore.instance
+                              .collection('projects')
+                              .doc(projectId)
+                              .get();
+
+                      final projectName =
+                          projectDoc.data()?['name'] ?? 'Không rõ tên dự án';
+
+                      // Chuyển màn hình đến ProjectDetailScreen
+                      context.go(
+                        '/project_detail/$projectId',
+                        extra: {'projectName': projectName},
+                      );
+                    } else if (taskId != null) {
+                      context.go('/task_detail/$taskId');
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Không tìm thấy nội dung công việc.'),
+                        ),
+                      );
+                    }
                   },
                 ),
               );

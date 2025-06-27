@@ -135,6 +135,13 @@ class ProcessColumn extends StatefulWidget {
 }
 
 class _ProcessColumnState extends State<ProcessColumn> {
+  Future<String> _getCurrentUserRole() async {
+    final userId = FirebaseAuth.instance.currentUser!.uid;
+    final doc =
+        await FirebaseFirestore.instance.collection('users').doc(userId).get();
+    return doc['role'];
+  }
+
   Future<void> _moveTask(
     String taskId,
     String fromProcessId,
@@ -344,68 +351,109 @@ class _ProcessColumnState extends State<ProcessColumn> {
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 10),
-              StreamBuilder<QuerySnapshot>(
-                stream:
-                    FirebaseFirestore.instance
-                        .collection('tasks')
-                        .where('processId', isEqualTo: widget.processId)
-                        .snapshots(),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
+              FutureBuilder<String>(
+                future: _getCurrentUserRole(),
+                builder: (context, roleSnapshot) {
+                  if (!roleSnapshot.hasData) {
                     return Text("Đang tải...");
                   }
-                  if (snapshot.hasError) {
-                    return Text("Lỗi khi tải số lượng task");
-                  }
-                  return Text(
-                    "Số lượng task: ${snapshot.data?.docs.length ?? 0}",
+
+                  final role = roleSnapshot.data!;
+                  final uid = FirebaseAuth.instance.currentUser!.uid;
+
+                  final query = FirebaseFirestore.instance
+                      .collection('tasks')
+                      .where('processId', isEqualTo: widget.processId);
+
+                  final filteredQuery =
+                      (role == 'employee')
+                          ? query.where('assigneeId', isEqualTo: uid)
+                          : query;
+
+                  return StreamBuilder<QuerySnapshot>(
+                    stream: filteredQuery.snapshots(),
+                    builder: (context, snapshot) {
+                      if (!snapshot.hasData) {
+                        return Text("Đang tải...");
+                      }
+                      return Text(
+                        "Số lượng task: ${snapshot.data!.docs.length}",
+                      );
+                    },
                   );
                 },
               ),
+
               Expanded(
-                child: StreamBuilder<QuerySnapshot>(
-                  stream:
-                      FirebaseFirestore.instance
-                          .collection('tasks')
-                          .where('projectId', isEqualTo: widget.projectId)
-                          .where('processId', isEqualTo: widget.processId)
-                          .snapshots(),
-                  builder: (context, snapshot) {
-                    if (!snapshot.hasData)
+                child: FutureBuilder<String>(
+                  future: _getCurrentUserRole(),
+                  builder: (context, roleSnapshot) {
+                    if (!roleSnapshot.hasData) {
                       return Center(child: CircularProgressIndicator());
-                    var tasks = snapshot.data!.docs;
-                    return ListView(
-                      children:
-                          tasks.map((task) {
-                            return Draggable<Map<String, String>>(
-                              data: {
-                                'taskId': task.id,
-                                'fromProcessId': widget.processId,
-                              },
-                              feedback: Material(
-                                child: Card(
-                                  color: Colors.blueAccent,
-                                  child: Padding(
-                                    padding: EdgeInsets.all(8.0),
-                                    child: Text(
-                                      task['name'],
-                                      style: TextStyle(color: Colors.white),
+                    }
+
+                    final role = roleSnapshot.data!;
+                    final uid = FirebaseAuth.instance.currentUser!.uid;
+
+                    final query = FirebaseFirestore.instance
+                        .collection('tasks')
+                        .where('projectId', isEqualTo: widget.projectId)
+                        .where('processId', isEqualTo: widget.processId);
+
+                    final filteredQuery =
+                        (role == 'employee')
+                            ? query.where('assigneeId', isEqualTo: uid)
+                            : query;
+
+                    return StreamBuilder<QuerySnapshot>(
+                      stream: filteredQuery.snapshots(),
+                      builder: (context, snapshot) {
+                        if (!snapshot.hasData) {
+                          return Center(child: CircularProgressIndicator());
+                        }
+
+                        final tasks = snapshot.data!.docs;
+
+                        if (tasks.isEmpty) {
+                          return Center(child: Text("Không có task nào"));
+                        }
+
+                        return ListView(
+                          children:
+                              tasks.map((task) {
+                                return Draggable<Map<String, String>>(
+                                  data: {
+                                    'taskId': task.id,
+                                    'fromProcessId': widget.processId,
+                                  },
+                                  feedback: Material(
+                                    child: Card(
+                                      color: Colors.blueAccent,
+                                      child: Padding(
+                                        padding: EdgeInsets.all(8.0),
+                                        child: Text(
+                                          task['name'],
+                                          style: TextStyle(color: Colors.white),
+                                        ),
+                                      ),
                                     ),
                                   ),
-                                ),
-                              ),
-                              childWhenDragging: Opacity(
-                                opacity: 0.5,
-                                child: Card(
-                                  child: ListTile(title: Text(task['name'])),
-                                ),
-                              ),
-                              child: Card(
-                                margin: EdgeInsets.symmetric(vertical: 5),
-                                child: ListTile(title: Text(task['name'])),
-                              ),
-                            );
-                          }).toList(),
+                                  childWhenDragging: Opacity(
+                                    opacity: 0.5,
+                                    child: Card(
+                                      child: ListTile(
+                                        title: Text(task['name']),
+                                      ),
+                                    ),
+                                  ),
+                                  child: Card(
+                                    margin: EdgeInsets.symmetric(vertical: 5),
+                                    child: ListTile(title: Text(task['name'])),
+                                  ),
+                                );
+                              }).toList(),
+                        );
+                      },
                     );
                   },
                 ),
@@ -433,17 +481,19 @@ Future<bool> _canMoveTaskToStatus(String taskId, String newStatus) async {
   final subtasks = subtaskSnapshot.docs;
 
   if (newStatus == 'Doing') {
-    return true; // Cho phép tự do kéo sang Doing
+    // ⚠️ Ít nhất 1 subtask đã ở Doing thì mới cho phép
+    return subtasks.isEmpty || subtasks.any((s) => s['status'] == 'Doing');
   }
 
   if (newStatus == 'Done') {
-    return subtasks.every(
-      (s) => s['status'] == 'Done' || s['status'] == 'Complete',
-    );
+    return subtasks.isEmpty ||
+        subtasks.every(
+          (s) => s['status'] == 'Done' || s['status'] == 'Complete',
+        );
   }
 
   if (newStatus == 'Complete') {
-    return subtasks.every((s) => s['status'] == 'Complete');
+    return subtasks.isEmpty || subtasks.every((s) => s['status'] == 'Complete');
   }
 
   return true;

@@ -167,6 +167,10 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
         'description':
             'Bạn được giao công việc "${taskNameController.text.trim()}" trong dự án "${projects.firstWhere((p) => p['id'] == selectedProjectId)['name']}".',
         'timestamp': FieldValue.serverTimestamp(),
+        'taskId': taskId,
+        'projectId': selectedProjectId,
+        'type': 'assigned_task',
+        'isRead': false,
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
