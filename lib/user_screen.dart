@@ -172,6 +172,17 @@ class _UserScreenState extends State<UserScreen> {
       appBar: AppBar(
         title: Text('Cá nhân & Công việc'),
         actions: [
+          // Nút Cảnh báo
+          Tooltip(
+            message: "Cảnh báo",
+            child: IconButton(
+              icon: Icon(Icons.warning_amber_rounded, color: Colors.orange),
+              onPressed: () {
+                context.go('/warning'); // Đường dẫn tùy huynh
+              },
+            ),
+          ),
+
           // Nút Project hoàn thành
           Tooltip(
             message: "Xem dự án hoàn thành",

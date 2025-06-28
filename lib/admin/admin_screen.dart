@@ -370,6 +370,7 @@ class _AdminScreenState extends State<AdminScreen> {
       ),
       body: Column(
         children: [
+          // KHỐI THÊM NGƯỜI DÙNG
           Padding(
             padding: const EdgeInsets.all(12.0),
             child: Container(
@@ -408,6 +409,8 @@ class _AdminScreenState extends State<AdminScreen> {
               ),
             ),
           ),
+
+          // KHỐI DANH SÁCH NGƯỜI DÙNG
           Expanded(
             child: StreamBuilder(
               stream:
@@ -416,125 +419,71 @@ class _AdminScreenState extends State<AdminScreen> {
                       .where('isVisible', isEqualTo: true)
                       .snapshots(),
               builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
-                if (!snapshot.hasData)
+                if (!snapshot.hasData) {
                   return Center(child: CircularProgressIndicator());
+                }
 
-                return ListView.builder(
-                  padding: const EdgeInsets.all(12),
-                  itemCount: snapshot.data!.docs.length,
-                  itemBuilder: (context, index) {
-                    final doc = snapshot.data!.docs[index];
-                    final fullName = doc['fullName'] ?? '';
-                    final email = doc['email'] ?? '';
-                    final role = doc['role'] ?? '';
-                    final avatarChar =
-                        fullName.isNotEmpty ? fullName[0].toUpperCase() : '?';
+                final docs = snapshot.data!.docs;
 
-                    final List<Color> avatarColors = [
-                      Colors.indigo,
-                      Colors.teal,
-                      Colors.deepOrange,
-                      Colors.purple,
-                      Colors.brown,
-                    ];
-                    final color =
-                        avatarColors[fullName.hashCode % avatarColors.length];
-
-                    return Card(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                return SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minWidth: MediaQuery.of(context).size.width,
+                    ),
+                    child: DataTable(
+                      columnSpacing: 20,
+                      headingRowColor: MaterialStateProperty.all(
+                        Colors.blue.shade100,
                       ),
-                      elevation: 4,
-                      margin: const EdgeInsets.symmetric(vertical: 8),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 10,
-                          horizontal: 16,
-                        ),
-                        child: Row(
-                          children: [
-                            CircleAvatar(
-                              backgroundColor: color,
-                              radius: 26,
-                              child: Text(
-                                avatarChar,
-                                style: const TextStyle(
-                                  fontSize: 22,
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
+                      columns: const [
+                        DataColumn(label: Text('Họ và tên')),
+                        DataColumn(label: Text('Email')),
+                        DataColumn(label: Text('SĐT')),
+                        DataColumn(label: Text('Vai trò')),
+                        DataColumn(label: Text('Hành động')),
+                      ],
+                      rows:
+                          docs.map((doc) {
+                            final fullName = doc['fullName'] ?? '';
+                            final email = doc['email'] ?? '';
+                            final phone = doc['phone'] ?? '';
+                            final role = doc['role'] ?? '';
+
+                            return DataRow(
+                              cells: [
+                                DataCell(Text(fullName)),
+                                DataCell(Text(email)),
+                                DataCell(Text(phone)),
+                                DataCell(Text(role)),
+                                DataCell(
+                                  Row(
+                                    children: [
+                                      IconButton(
+                                        icon: Icon(
+                                          Icons.edit,
+                                          color: Colors.amber[800],
+                                        ),
+                                        tooltip: 'Chỉnh sửa',
+                                        onPressed: () => _editUser(doc),
+                                      ),
+                                      IconButton(
+                                        icon: Icon(
+                                          Icons.delete,
+                                          color: Colors.redAccent,
+                                        ),
+                                        tooltip: 'Xóa',
+                                        onPressed:
+                                            () => toggleUserStatus(doc.id),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    fullName,
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Row(
-                                    children: [
-                                      Icon(
-                                        Icons.mail,
-                                        size: 14,
-                                        color: Colors.grey,
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Flexible(
-                                        child: Text(
-                                          email,
-                                          style: const TextStyle(
-                                            fontSize: 13,
-                                            color: Colors.grey,
-                                          ),
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Row(
-                                    children: [
-                                      Icon(
-                                        Icons.person,
-                                        size: 14,
-                                        color: Colors.grey,
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        role,
-                                        style: const TextStyle(
-                                          fontSize: 13,
-                                          color: Colors.grey,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            IconButton(
-                              icon: Icon(Icons.edit, color: Colors.amber[800]),
-                              onPressed: () => _editUser(doc),
-                              tooltip: 'Chỉnh sửa',
-                            ),
-                            IconButton(
-                              icon: Icon(Icons.delete, color: Colors.redAccent),
-                              onPressed: () => toggleUserStatus(doc.id),
-                              tooltip: 'Xóa',
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
+                              ],
+                            );
+                          }).toList(),
+                    ),
+                  ),
                 );
               },
             ),

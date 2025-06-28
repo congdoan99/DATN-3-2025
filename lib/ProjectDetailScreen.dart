@@ -183,10 +183,32 @@ class _ProcessColumnState extends State<ProcessColumn> {
       });
 
       await widget.addLog(taskId, "Moved to $toProcessName");
+      if (toProcessName == 'Complete') {
+        await _checkAndUpdateProjectStatus(widget.projectId);
+      }
 
       if (mounted) setState(() {});
     } catch (e) {
       print("Lỗi khi di chuyển task: $e");
+    }
+  }
+
+  Future<void> _checkAndUpdateProjectStatus(String projectId) async {
+    final taskSnapshot =
+        await FirebaseFirestore.instance
+            .collection('tasks')
+            .where('projectId', isEqualTo: projectId)
+            .get();
+
+    final allCompleted = taskSnapshot.docs.every(
+      (doc) => doc['status'] == 'Complete',
+    );
+
+    if (allCompleted && taskSnapshot.docs.isNotEmpty) {
+      await FirebaseFirestore.instance
+          .collection('projects')
+          .doc(projectId)
+          .update({'status': 'Complete'});
     }
   }
 

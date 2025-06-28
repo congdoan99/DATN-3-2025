@@ -16,6 +16,7 @@ import 'package:poro_2/user_screen.dart';
 
 import 'EmailSignUpScreen.dart';
 import 'ProjectListScreen.dart';
+import 'WarningScreen.dart';
 import 'auth_gate.dart';
 
 void main() {
@@ -167,6 +168,10 @@ class MyApp extends StatelessWidget {
             projectName: projectName,
           );
         },
+      ),
+      GoRoute(
+        path: '/warning',
+        builder: (context, state) => const WarningScreen(),
       ),
     ],
     debugLogDiagnostics: true,
